@@ -2,10 +2,6 @@
 # agent: clave de autoplayus/agents/__init__.py -> AGENT_TYPES
 # params: parámetros propios del juego (región del tablero, filas/columnas, umbrales...)
 games:
-  - id: TowerStack
-    name: TowerStack
-    agent: tower_stack
-    params: {}
   - id: FireFly
     name: FireFly
     agent: fire_fly
@@ -18,4 +14,24 @@ games:
       settle: 0.5                # s tras un toque en los que se confía en lo esperado y no en el rayo leído
       star: [360, 734]             # estrella de la bifurcación: su color indica la dirección del rayo
       tap: [360, 640]              # punto donde se toca para cambiar el rayo
-      min_area: 200                # píxeles mínimos de la mancha de color de una luciérnaga
+      min_area: 200               # píxeles mínimos de la mancha de color de una luciérnaga
+
+  - id: ParcelPanic
+    name: ParcelPanic
+    agent: parcel_panic
+    params:
+      belt: [130, 330, 600, 1180]  # x_min, y_min, x_max, y_max de la cinta donde se busca el recuadro blanco
+      white_min: 160               # valor mínimo (B,G,R) del recuadro blanco: se desvanece al animarse y se difumina al escalar
+      frame_w: [75, 110]           # ancho mín/máx del recuadro (late entre ~81 y ~89 px)
+      frame_h: [50, 80]            # alto mín/máx del recuadro
+      min_color_px: 150            # píxeles mínimos del color ganador dentro del recuadro
+      ambiguity: 0.3               # si el 2º color supera esta fracción del 1º, no se desliza (esperar fotograma claro)
+      new_box_dy: 25               # el recuadro subió más de esto: es otra caja (las cajas solo bajan)
+      min_gap_s: 0.1               # s mínimos entre deslizamientos
+      settle_s: 0.25               # s tras un deslizamiento en los que se ignoran fotogramas capturados antes (retraso del juego + de la captura)
+      retry_s: 0.6                 # s tras los que se reintenta si el recuadro sigue (deslizamiento fallido)
+      swipe_ms: 30                 # duración del gesto
+      swipes:                      # x1, y1, x2, y2 por color: rojo <-, amarillo ^, azul ->
+        red: [470, 1050, 250, 1050]
+        yellow: [360, 1120, 360, 900]
+        blue: [250, 1050, 470, 1050]

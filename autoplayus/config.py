@@ -13,6 +13,7 @@ ADB_SERIAL = "127.0.0.1:5556"  # None = único dispositivo conectado
 
 # Ventana de BlueStacks (toques rápidos como clics de Windows) y tamaño de pantalla del Android
 BLUESTACKS_WINDOW = "BlueStacks App Player"
+WINDOW_CAPTURE = True  # capturar copiando la ventana (~3 ms) en vez de por ADB (~145-245 ms)
 SCREEN_SIZE = (720, 1280)
 
 # Interfaz común a todos los minijuegos (coordenadas de la captura, 720x1280)

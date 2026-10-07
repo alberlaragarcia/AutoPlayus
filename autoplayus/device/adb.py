@@ -10,6 +10,7 @@ from autoplayus.device.base import Device
 class AdbDevice(Device):
     def __init__(self, serial: str | None = config.ADB_SERIAL, adb_path: str = config.ADB_PATH):
         self._base = [adb_path] + (["-s", serial] if serial else [])
+        self.last_size: tuple[int, int] = config.SCREEN_SIZE  # (ancho, alto) de la última captura
         if serial and ":" in serial:  # emulador por red (BlueStacks): hay que conectarlo
             subprocess.run([adb_path, "connect", serial], capture_output=True)
 
@@ -26,6 +27,7 @@ class AdbDevice(Device):
         img = cv2.imdecode(np.frombuffer(png, np.uint8), cv2.IMREAD_COLOR)
         if img is None:
             raise RuntimeError("No se pudo decodificar la captura de ADB")
+        self.last_size = (img.shape[1], img.shape[0])  # la orientación cambia según la app (inicio: horizontal)
         return img
 
     def screen_size(self) -> tuple[int, int]:

@@ -1,0 +1,21 @@
+# Catálogo de minijuegos de Playus (rellenar hasta los 70).
+# agent: clave de autoplayus/agents/__init__.py -> AGENT_TYPES
+# params: parámetros propios del juego (región del tablero, filas/columnas, umbrales...)
+games:
+  - id: TowerStack
+    name: TowerStack
+    agent: tower_stack
+    params: {}
+  - id: FireFly
+    name: FireFly
+    agent: fire_fly
+    params:
+      strip: [300, 400, 420, 790]  # x_min, y_min, x_max, y_max de la franja del rayo donde se buscan luciérnagas
+      fork_y: 715                  # y de la bifurcación del rayo
+      margin: 25                   # una luciérnaga a menos de esto de la bifurcación no se puede redirigir
+      speed: 270                   # px/s a los que cae una luciérnaga (medido al principio de la partida)
+      lead: 0.2                  # s hasta que un toque surte efecto (antigüedad de la captura ~0,15 s + clic)
+      settle: 0.5                # s tras un toque en los que se confía en lo esperado y no en el rayo leído
+      star: [360, 734]             # estrella de la bifurcación: su color indica la dirección del rayo
+      tap: [360, 640]              # punto donde se toca para cambiar el rayo
+      min_area: 200                # píxeles mínimos de la mancha de color de una luciérnaga

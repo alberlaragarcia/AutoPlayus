@@ -1,0 +1,13 @@
+Quiero que actúes como experto en machine learning y videojuegos, pero con el objetivo de ayudarme a llevar a cabo un 
+proyecto personal en el que quiero desarrollar una herramienta para jugar a un juego móvil llamado 
+"playus: Minijuegos Arena", qué consiste en minijuegos diarios, y cuenta con una variedad de 70 minijuegos. 
+Inicialmente había pensado en que cada juego lo resolviera un agente especializado. La idea sería crear una serie de 
+agentes especializados en ciertos tipos de mecánicas, por ejemplo: Agente de Reconocimiento de Patrones: Para minijuegos 
+tipo Match-3, diferencias o memoria visual, Agente de Puzzles / Lógica: Para minijuegos con reglas fijas 
+(tipo Sudoku, laberintos o conexiones). Para darte más contexto de lo que quiero, la idea principal y objetivo principal 
+es conseguir agentes que superen los minijuegos con éxitos, quiero hacer también una mini-app, en la que yo seleccione 
+el minijuego a jugar (ten en cuenta que es un minijuego para móviles), y ya el agente asignado correspondiente resuelve 
+el minijuego.
+
+
+

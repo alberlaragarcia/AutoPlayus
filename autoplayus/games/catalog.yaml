@@ -105,3 +105,24 @@ games:
       dim_max: 90                    # cielo más oscuro que esto en (100, 300): tutorial superpuesto
       tap_left: [60, 1100]           # toque en el lado izquierdo: un carril a la izquierda
       tap_right: [660, 1100]         # toque en el lado derecho: un carril a la derecha
+
+  - id: React
+    name: React
+    agent: react
+    params:
+      circles:                       # centro (x, y) de los 9 círculos, por filas
+        - [192, 580]
+        - [360, 580]
+        - [528, 580]
+        - [192, 748]
+        - [360, 748]
+        - [528, 748]
+        - [192, 916]
+        - [360, 916]
+        - [528, 916]
+      patch: 6                       # semilado del parche que se promedia en el centro de cada círculo
+      green_min: 150                 # canal verde mínimo de un círculo encendido (~212; apagado ~55)
+      red_max: 100                   # canal rojo máximo (descarta el blanco del tutorial; encendido ~0)
+      off_bgr: [72, 55, 45]          # color de un círculo apagado
+      off_tol: 20                    # diferencia máxima por canal con off_bgr para darlo por apagado
+      max_lit: 1                     # círculos encendidos a la vez: el resto debe verse apagado (si no, no es la cuadrícula)

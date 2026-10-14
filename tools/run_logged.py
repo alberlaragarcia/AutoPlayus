@@ -2,6 +2,7 @@
 
 Uso:  python tools/run_logged.py <id_juego> <carpeta_salida>
 Guarda <carpeta_salida>/NNNN.jpg (cada captura que recibió el agente) y events.csv (idx de captura y gestos).
+Para pararlo a mano: Ctrl+C o crear el archivo <carpeta_salida>/STOP. En ambos casos se guarda lo grabado.
 Las capturas se codifican en memoria y se escriben al terminar, para no retrasar el bucle del agente.
 """
 
@@ -57,7 +58,25 @@ def main() -> None:
     device.screenshot, device.swipe, device.tap = rec_shot, rec_swipe, rec_tap
 
     agent = load_catalog()[game_id].build_agent(device)
-    result = agent.run()
+    stop_file = out / "STOP"
+    stop_file.unlink(missing_ok=True)
+    done = threading.Event()
+
+    def watch_stop():
+        while not done.wait(0.2):
+            if stop_file.exists():
+                print("STOP encontrado: parando el agente")
+                agent.stop()
+                return
+
+    threading.Thread(target=watch_stop, daemon=True).start()
+    try:
+        result = agent.run()
+    except KeyboardInterrupt:
+        agent.stop()
+        result = "interrumpido (Ctrl+C)"
+    finally:
+        done.set()
     print("resultado:", result, "en", round(time.time() - t0, 1), "s;", len(frames), "capturas")
 
     for i, data in enumerate(frames):

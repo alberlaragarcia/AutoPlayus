@@ -47,3 +47,61 @@ games:
       min_len: 60                    # alto visible mínimo para contarla como tecla (descarta las que aún entran)
       key_h: 272                     # alto real de una tecla (paso entre filas: 277)
       max_move: 270                  # px máximos que una tecla puede bajar entre dos capturas para reconocerla (menos que el paso entre filas, 277)
+
+  - id: LaneRush
+    name: LaneRush
+    agent: lane_rush
+    params:
+      horizon_y: 818                 # y donde asoman los coches rivales (la carretera empieza en ~812)
+      row_step: 2                    # se mira una de cada tantas filas de la carretera
+      half_lane:                     # [y, semiancho de carril]: distancia de x=360 a cada línea divisoria (perspectiva curvada)
+        - [812, 40]
+        - [820, 45]
+        - [860, 62]
+        - [900, 75]
+        - [940, 85]
+        - [980, 95]
+        - [1020, 105]
+        - [1060, 115]
+        - [1100, 125]
+        - [1140, 130]
+        - [1180, 135]
+        - [1220, 145]
+        - [1280, 160]
+      play_x: [28, 692]              # x mínima y máxima de la zona de juego (fuera, margen morado)
+      corridor: 0.5                  # semiancho de la franja que se mira en cada carril, en semianchos de carril (no toca las líneas)
+      road_bgr: [45, 45, 60]         # color del asfalto
+      road_tol: 30                   # diferencia máxima con el asfalto en algún canal para contar como asfalto
+      min_fill: 0.25                 # fracción de la fila que no es asfalto para considerarla ocupada por un coche
+      player_rows: [1000, 1180]      # filas que ocupa el coche del jugador
+      own_lane_max_y: 980            # en el carril del jugador solo se buscan rivales por encima de esto (su techo llega a ~990 al girar)
+      player_lanes_x: [138, 360, 582]  # x (mediana del verde) del coche del jugador en cada carril
+      player_reach_px: 175           # el coche del jugador (semiancho ~114) pisa la franja de un carril (semiancho ~61) si su x está a menos de esto del centro del carril
+      player_min_px: 500             # píxeles verdes mínimos (muestreando 1 de cada 4 filas) para dar el coche por visto
+      settle_px: 20                  # a más de esto del centro de un carril, el coche está cambiando de carril
+      approach_s:                    # [y inferior de un rival, s hasta llegar al jugador] a la velocidad de referencia (principio de la partida)
+        - [818, 0.41]
+        - [820, 0.397]
+        - [830, 0.338]
+        - [840, 0.28]
+        - [860, 0.221]
+        - [880, 0.163]
+        - [914, 0.106]
+        - [950, 0.047]
+        - [1000, 0.0]
+        - [1280, -0.3]               # ya a la altura del jugador
+      speed_window: 0.04             # s entre las dos posiciones de un rival con las que se mide la velocidad
+      decide_y: 824                  # desde el centro, no decidir hasta que el rival baje hasta aquí (a veces otro a la par asoma después y decide el lado)
+      min_ttc: 0.22                  # no entrar ni cruzar un carril cuyo rival llegue al jugador antes de esto (el cambio dura ~0,15 s)
+      escape_ttc: 0.08               # margen mínimo si no queda otra (quedarse en el carril es chocar seguro)
+      chain_gap_s: 0.05              # s entre los dos toques para cruzar dos carriles (el juego acepta toques durante la animación)
+      arrive_px: 60                  # tras pedir un cambio, a esta distancia del carril destino (pasada la mitad) ya se puede encadenar otro
+      appear_y: 840                  # un coche que aparece por encima de esto acaba de asomar: empieza una oleada
+      wave_join_s: 0.12              # coches que asoman con menos de esto entre sí son de la misma oleada
+      wave_gap_factor: 0.8           # la oleada siguiente puede asomar tras esta fracción del menor de los últimos intervalos
+      return_to_center: false        # volver al centro sin necesidad cuando parece haber tiempo (moverse deja sin reacción ante la oleada siguiente)
+      reposition_s: 0.15             # s libres antes de la oleada siguiente necesarios para volver al centro (pasar la mitad del cambio con margen)
+      move_timeout: 0.4              # s máximos esperando a que termine un cambio de carril antes de volver a decidir
+      dim_max: 90                    # cielo más oscuro que esto en (100, 300): tutorial superpuesto
+      tap_left: [60, 1100]           # toque en el lado izquierdo: un carril a la izquierda
+      tap_right: [660, 1100]         # toque en el lado derecho: un carril a la derecha

@@ -20,4 +20,5 @@ SCREEN_SIZE = (720, 1280)
 # Interfaz común a todos los minijuegos (coordenadas de la captura, 720x1280)
 UI_START = (360, 1157)  # botón "Start" de la ventana de cada juego
 UI_FIRST_TAP = (360, 1030)  # toque que arranca la partida tras pulsar Start
-UI_OK = (360, 632)  # botón "OK" de la pantalla final
+UI_OK = (360, 632)  # botón "OK" de la pantalla final (con una puntuación alta sale una etiqueta "Top x%" y baja a ~680)
+UI_OK_ROWS = (560, 780)  # franja de filas donde se busca el OK: cubre las dos posiciones

@@ -20,6 +20,10 @@ class Device(ABC):
     @abstractmethod
     def swipe(self, x1: int, y1: int, x2: int, y2: int, duration_ms: int = 200) -> None: ...
 
+    def focus(self) -> bool:
+        """Deja el dispositivo listo para recibir toques (p. ej. traer su ventana al frente). True si lo está."""
+        return True
+
     def drag_path(self, points: list[tuple[int, int]], step_ms: int = 60) -> None:
         """Arrastra por una secuencia de puntos (laberintos, conexiones). Por defecto, swipes encadenados."""
         for (x1, y1), (x2, y2) in zip(points, points[1:]):

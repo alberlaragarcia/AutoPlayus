@@ -14,6 +14,7 @@ log = logging.getLogger(__name__)
 _user32 = ctypes.windll.user32 if hasattr(ctypes, "windll") else None
 _WM_MOUSEMOVE, _WM_LBUTTONDOWN, _WM_LBUTTONUP = 0x0200, 0x0201, 0x0202
 _MK_LBUTTON = 0x0001
+_GA_ROOT, _SW_RESTORE, _VK_MENU, _KEYEVENTF_KEYUP = 2, 9, 0x12, 0x0002
 _PER_MONITOR_AWARE_V2 = -4
 _EnumProc = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
 
@@ -132,6 +133,25 @@ class BlueStacksDevice(AdbDevice):
                 log.warning("No se pudo capturar la ventana de BlueStacks (¿minimizada?): captura por ADB (lenta)")
                 self._warned_capture = True
         return super().screenshot()
+
+    def focus(self) -> bool:
+        """Trae BlueStacks al primer plano: ignora los clics enviados a su ventana mientras no es la activa (por
+        ejemplo cuando el foco se queda en la mini-app tras pulsar Resolver)."""
+        hwnd = self._window()
+        if hwnd is None:
+            return True  # sin ventana los toques van por ADB, que no depende del foco
+        top = _user32.GetAncestor(hwnd, _GA_ROOT)
+        if _user32.IsIconic(top):
+            _user32.ShowWindow(top, _SW_RESTORE)
+        for _ in range(5):
+            if _user32.GetForegroundWindow() == top:
+                return True
+            _user32.keybd_event(_VK_MENU, 0, 0, 0)  # pulsar Alt permite a un proceso en segundo plano robar el foco
+            _user32.SetForegroundWindow(top)
+            _user32.keybd_event(_VK_MENU, 0, _KEYEVENTF_KEYUP, 0)
+            time.sleep(0.1)
+        log.warning("No se pudo traer BlueStacks al primer plano: los toques pueden ignorarse")
+        return _user32.GetForegroundWindow() == top
 
     def _window(self) -> int | None:
         if _user32 is None:

@@ -45,3 +45,11 @@ def test_taps_once_until_the_circle_is_seen_off():
     agent.frame_time = 2.0
     agent.step(lit)  # se vuelve a encender (otra ronda): nuevo toque
     assert len(agent.device.taps) == 2
+
+
+def test_finds_ok_button_pushed_down_by_the_top_percent_label():
+    agent, _ = _agent()
+    assert agent.is_solved(_capture("end_top"))
+    assert agent.ok_pos == (360, 680)  # sin la etiqueta "Top x%" está en 632: se pulsa donde se ve
+    assert not agent.is_solved(_capture("idle"))
+    assert agent.ok_pos is None

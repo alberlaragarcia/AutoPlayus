@@ -88,6 +88,7 @@ class BaseAgent(ABC):
 
     step_delay = 0.2  # pausa entre pasos; los juegos de reflejos la ponen a 0
     capture_threads = 1  # capturas en paralelo; los juegos de reflejos pueden subirlo (ver FrameGrabber)
+    ok_pos: tuple[int, int] | None = None  # centro del botón OK de la pantalla final, tal como lo vio is_solved
     frame_time = 0.0  # instante en que empezó la captura del fotograma que recibe step(); un gesto anterior a él no se ve aún
 
     def run(self, max_seconds: float = 180.0, step_delay: float | None = None) -> bool:
@@ -97,6 +98,7 @@ class BaseAgent(ABC):
         """
         self._stop.clear()
         self.on_start()
+        self.device.focus()  # BlueStacks ignora los toques si no es la ventana activa
         self.start_game()
         # Capturar en paralelo solo compensa con la captura lenta por ADB; desde la ventana basta un hilo.
         workers = 1 if getattr(self.device, "fast_capture", False) else self.capture_threads
@@ -115,7 +117,7 @@ class BaseAgent(ABC):
                     frame = self.device.screenshot()
                 if self.is_solved(frame):
                     log.info("Partida terminada en %d pasos", i)
-                    self.device.tap(*config.UI_OK)
+                    self.device.tap(*(self.ok_pos or config.UI_OK))
                     return True
                 self.step(frame)
                 time.sleep(self.step_delay if step_delay is None else step_delay)
@@ -146,7 +148,16 @@ class BaseAgent(ABC):
 
     def is_solved(self, frame: np.ndarray) -> bool:
         """Detecta la pantalla final (botón OK común a todos los juegos)."""
-        # El OK siempre está en el mismo sitio: buscar solo en su franja (en todo el fotograma costaba ~45 ms por paso)
-        h, y = _ok_template().shape[0], config.UI_OK[1]
-        band = frame[max(0, y - h // 2 - 25) : y + h // 2 + 26]
-        return find_template(band, _ok_template(), threshold=0.9) is not None
+        # El OK solo puede estar en su franja (en todo el fotograma costaba ~45 ms por paso). Su altura varía:
+        # con una puntuación alta aparece una etiqueta "Top x%" que lo baja, así que se guarda dónde está.
+        # Antes de comparar la plantilla (~8 ms) se mira una columna del botón: activo es un relleno verde plano
+        # (apagado, mientras se anima, es gris y aún no responde al toque), y en juego no hay verde ahí.
+        top, bottom = config.UI_OK_ROWS
+        template = _ok_template()
+        column = frame[top:bottom, 360 - template.shape[1] // 2 + 20].astype(np.int16)
+        green = (np.abs(column - template[template.shape[0] // 2, 20]).max(axis=1) <= 30).sum()
+        found = None
+        if green >= template.shape[0] * 0.6:
+            found = find_template(frame[top:bottom], template, threshold=0.9)
+        self.ok_pos = (found[0], found[1] + top) if found else None
+        return found is not None

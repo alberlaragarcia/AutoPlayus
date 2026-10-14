@@ -57,7 +57,7 @@ def main() -> None:
     device.screenshot, device.swipe, device.tap = rec_shot, rec_swipe, rec_tap
 
     agent = load_catalog()[game_id].build_agent(device)
-    result = agent.run(max_steps=3000)
+    result = agent.run()
     print("resultado:", result, "en", round(time.time() - t0, 1), "s;", len(frames), "capturas")
 
     for i, data in enumerate(frames):

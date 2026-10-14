@@ -16,7 +16,7 @@ Mini-app (gui.py) ──elige un juego──> catalog.yaml ──> GameSpec ─�
 
 1. En la mini-app eliges un juego del desplegable (se rellena desde `catalog.yaml`).
 2. Al pulsar **Resolver**, `GameSpec.build_agent()` busca en `AGENT_TYPES` la clase indicada en `agent:` y la crea con el dispositivo ADB y los `params` del juego.
-3. `agent.run()` repite: captura de pantalla → `is_solved(frame)` → `step(frame)` → pausa, hasta resolver, pulsar **Parar** o agotar `max_steps`.
+3. `agent.run()` repite: captura de pantalla → `is_solved(frame)` → `step(frame)` → pausa, hasta resolver, pulsar **Parar** o agotar `max_seconds` (180 s por defecto).
 
 > **Importante:** hoy el agente asume que **el minijuego ya está abierto** en BlueStacks. Navegar por el menú de Playus hasta el juego no está implementado (ver sección 6).
 
@@ -102,7 +102,7 @@ class CountAgent(BaseAgent):
         ...
 ```
 
-Lo que **debes** implementar es `step()`. `is_solved()` y `on_start()` son opcionales. Si no implementas `is_solved()`, el agente solo termina al pulsar Parar o al llegar a `max_steps` (500 por defecto).
+Lo que **debes** implementar es `step()`. `is_solved()` y `on_start()` son opcionales. Si no implementas `is_solved()`, el agente solo termina al pulsar Parar o al llegar a `max_seconds` (180 s por defecto).
 
 ### Paso 3 – Registrarlo
 En `autoplayus/agents/__init__.py`:

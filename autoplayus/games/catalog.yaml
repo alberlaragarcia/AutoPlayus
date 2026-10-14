@@ -35,3 +35,15 @@ games:
         red: [470, 1050, 250, 1050]
         yellow: [360, 1120, 360, 900]
         blue: [250, 1050, 470, 1050]
+
+  - id: Piano
+    name: Piano
+    agent: piano
+    params:
+      lanes_x: [111, 277, 444, 610]  # x del centro de cada uno de los 4 carriles
+      band_half: 30                  # semiancho de la banda central del carril donde se busca blanco (evita el dígito de puntuación)
+      play_top: 216                  # y donde empieza la zona de juego (por encima está la cabecera)
+      white_min: 200                 # valor mínimo del canal verde de una tecla (~238; el fondo y las teclas apagadas tienen <70)
+      min_len: 60                    # alto visible mínimo para contarla como tecla (descarta las que aún entran)
+      key_h: 272                     # alto real de una tecla (paso entre filas: 277)
+      max_move: 270                  # px máximos que una tecla puede bajar entre dos capturas para reconocerla (menos que el paso entre filas, 277)

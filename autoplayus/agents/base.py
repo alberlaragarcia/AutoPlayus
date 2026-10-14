@@ -20,6 +20,11 @@ def _ok_template() -> np.ndarray:
     return cv2.imread(str(config.COMMON_TEMPLATES_DIR / "ok_button.png"))
 
 
+@lru_cache(maxsize=1)
+def _start_template() -> np.ndarray:
+    return cv2.imread(str(config.COMMON_TEMPLATES_DIR / "start_button.png"))
+
+
 class FrameGrabber:
     """Capturas en paralelo: con N hilos llegan ~N veces más fotogramas por segundo (cada uno con algo más de latencia).
 
@@ -85,8 +90,8 @@ class BaseAgent(ABC):
     capture_threads = 1  # capturas en paralelo; los juegos de reflejos pueden subirlo (ver FrameGrabber)
     frame_time = 0.0  # instante en que empezó la captura del fotograma que recibe step(); un gesto anterior a él no se ve aún
 
-    def run(self, max_steps: int = 500, step_delay: float | None = None) -> bool:
-        """Devuelve True si la partida terminó (pantalla final), False si se paró o agotó los pasos.
+    def run(self, max_seconds: float = 180.0, step_delay: float | None = None) -> bool:
+        """Devuelve True si la partida terminó (pantalla final), False si se paró o se agotó el tiempo.
 
         Flujo común: Start -> toque inicial -> bucle step() -> OK en la pantalla final.
         """
@@ -97,7 +102,9 @@ class BaseAgent(ABC):
         workers = 1 if getattr(self.device, "fast_capture", False) else self.capture_threads
         grabber = FrameGrabber(self.device, workers) if workers > 1 else None
         try:
-            for i in range(max_steps):
+            deadline = time.time() + max_seconds  # por tiempo, no por pasos: a más rápido el bucle, más pasos por segundo
+            i = 0
+            while time.time() < deadline:
                 if self._stop.is_set():
                     log.info("Agente detenido")
                     return False
@@ -112,7 +119,8 @@ class BaseAgent(ABC):
                     return True
                 self.step(frame)
                 time.sleep(self.step_delay if step_delay is None else step_delay)
-            log.warning("Máximo de pasos alcanzado")
+                i += 1
+            log.warning("Tiempo máximo alcanzado (%d s)", max_seconds)
             return False
         finally:
             if grabber:
@@ -120,8 +128,12 @@ class BaseAgent(ABC):
 
     def start_game(self) -> None:
         """Pulsa Start (común a todos los juegos) y el toque que arranca la partida."""
-        self.device.tap(*config.UI_START)
-        time.sleep(1.0)
+        for attempt in range(3):
+            self.device.tap(*config.UI_START)
+            time.sleep(1.0)
+            if find_template(self.device.screenshot(), _start_template(), threshold=0.9) is None:
+                break  # el botón desapareció: el juego arrancó
+            log.warning("El botón Start sigue visible: reintento %d", attempt + 1)
         self.device.tap(*config.UI_FIRST_TAP)
         time.sleep(0.5)
 
@@ -134,4 +146,7 @@ class BaseAgent(ABC):
 
     def is_solved(self, frame: np.ndarray) -> bool:
         """Detecta la pantalla final (botón OK común a todos los juegos)."""
-        return find_template(frame, _ok_template(), threshold=0.9) is not None
+        # El OK siempre está en el mismo sitio: buscar solo en su franja (en todo el fotograma costaba ~45 ms por paso)
+        h, y = _ok_template().shape[0], config.UI_OK[1]
+        band = frame[max(0, y - h // 2 - 25) : y + h // 2 + 26]
+        return find_template(band, _ok_template(), threshold=0.9) is not None

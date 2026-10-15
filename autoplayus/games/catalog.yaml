@@ -177,3 +177,10 @@ games:
       green_px: 3000                 # píxeles verdes mínimos en esa zona para dar la suma por acertada (~9000-13000 al acertar)
       check_s: 0.4                   # s tras teclear sin ver el número en verde para considerar que falló y repetir (el verde salió en <0,2 s)
       max_retries: 2
+      early_mode: predict            # off | predict | asap: cuándo teclear respecto al asentamiento (ver DiceRoll)
+      landing_half: 62               # semilado de la zona por dado al leer durante el aterrizaje (dados ~115 px)
+      early_stable_s: 0.12           # s que la lectura de aterrizaje debe mantenerse (las falsas duraron hasta 0,10 s)
+      roll_s: 1.329                  # s entre que los dados dejan de leerse (ronda anterior) y se asientan: 1,328 y 1,330 medidos
+      lead_s: 0.05                   # s antes del asentamiento previsto a los que se teclea (el toque tarda ~0,07 s en llegar al juego)
+      fallback_s: 0.1                # s tras asentarse sin ver nada tecleado para dar el adelanto por rechazado
+      typed_px: 1500                 # píxeles blancos o verdes en typed_box para dar por visible un número tecleado (~3000 por cifra)

@@ -134,10 +134,14 @@ games:
       ball_rows: [600, 1000]         # filas donde puede estar la bola (negra; la cámara la mantiene cerca de y~800-830)
       ball_dark: 50                  # valor máximo (B,G,R) de un píxel de la bola
       ball_px: [60, 300]             # píxeles oscuros mínimos y máximos (muestreando 1 de cada 2) para dar la bola por vista (~120-140)
-      min_run: 20                    # ancho mínimo de un tramo amarillo para contarlo como camino
-      look_s: 0.12                   # s de anticipación: la fila que se mira queda a esta distancia de la bola según la velocidad de bajada (a calibrar con los instantes de toque de una partida real: sobre la grabación humana 0,08 coincide con el giro observado, y el giro ocurre tras el retraso del juego)
-      look_px: [24, 100]             # límites de esa distancia (por debajo de ~22 px la bola tapa el camino)
-      margin_px: 6                   # el centro del camino debe pasar de la bola en esta cantidad para cambiar de dirección
+      heading_deg: [27, 142]         # ángulo con la horizontal de los dos sentidos de avance (derecha, izquierda), medido en los bordes del camino
+      ray_start_px: 20               # los rayos empiezan fuera de la bola (radio ~16)
+      ray_max_px: 300                # alcance máximo de los rayos
+      ray_step_px: 3                 # paso entre puntos de un rayo
+      ray_side_px: 10                # separación de los rayos laterales respecto al central (ancho de la bola)
+      look_s: 0.12                   # s que recorre la bola entre decidir girar y girar de verdad (retraso medido en vivo 0,06-0,1 s, más margen)
+      margin_px: 8                   # px de camino que se dejan además de lo recorrido en look_s
+      min_scroll_pxs: 50             # bajada mínima supuesta del camino (px/s) mientras aún no se ha medido (~60 al empezar)
       block_s: 0.2                   # s tras un toque sin volver a decidir (la dirección tarda unos fotogramas en leerse; el intervalo mínimo humano fue ~0,17)
       start_dir: -1                  # dirección de la bola al empezar (sale hacia la izquierda; luego cada toque la invierte)
       scroll_window_s: 0.1           # s sobre los que se promedia el desplazamiento del camino

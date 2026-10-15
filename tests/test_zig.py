@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 from autoplayus import config
-from autoplayus.agents.zig import ScrollTracker, Zig, desired_direction, find_ball, path_center
+from autoplayus.agents.zig import ScrollTracker, Zig, find_ball, free_distance, heading, should_turn, yellow_row
 from autoplayus.games.registry import load_catalog
 
 
@@ -33,19 +33,18 @@ def test_finds_the_ball_only_during_play():
     assert find_ball(_capture("end"), params) is None
 
 
-def test_path_center_ahead_of_the_ball():
+def test_free_distance_along_the_path():
     _, params = _agent()
     frame = _capture("mid_game")
     x, y = find_ball(frame, params)
-    assert abs(path_center(frame, y - 30, x, params["min_run"]) - 569.5) < 8  # el camino sigue hacia la derecha
-    assert path_center(frame, 400, x, params["min_run"]) is None  # por encima del camino solo hay cielo
+    right, left = free_distance(frame, x, y, 1, params), free_distance(frame, x, y, -1, params)
+    assert right > 80 and left < 40  # el tramo sigue hacia la derecha; a la izquierda está el borde
 
 
-def test_desired_direction_has_a_dead_zone():
-    assert desired_direction(300, 360, 1, 6) == -1
-    assert desired_direction(420, 360, -1, 6) == 1
-    assert desired_direction(363, 360, -1, 6) == -1  # dentro del margen: se mantiene
-    assert desired_direction(None, 360, 1, 6) == 1  # sin camino a la vista: se mantiene
+def test_should_turn_only_when_the_other_way_has_more_room():
+    assert should_turn(ahead=30, other=150, trigger=60)
+    assert not should_turn(ahead=100, other=150, trigger=60)  # aún queda camino delante
+    assert not should_turn(ahead=30, other=20, trigger=60)  # girar no mejora nada
 
 
 def _moving_path(shift_x, shift_y, n=10):
@@ -80,7 +79,9 @@ def test_scroll_tracker_does_not_depend_on_capture_rate():
 
 
 def test_taps_when_the_path_ahead_is_on_the_other_side_and_not_twice():
-    agent, params = _agent()
+    params = dict(load_catalog()["Zig"].params, min_scroll_pxs=220)  # bajada medida a mitad de partida
+    agent = Zig(FakeDevice(), params)
+    agent.on_start()
     frame = _capture("mid_game")
     assert agent._dir == -1  # al empezar la bola va a la izquierda; el camino por delante queda a la derecha
     agent.frame_time = 10.0
@@ -112,12 +113,46 @@ def test_corrects_its_direction_only_after_a_sustained_disagreement():
     assert agent._dir == 1
 
 
-def test_steers_towards_the_start_platform_centre():
-    """En la plataforma inicial (la bola sale a la izquierda y su centro queda a la derecha) toca enseguida."""
-    agent, params = _agent()
+def test_goes_straight_while_the_start_platform_has_room():
+    agent, _ = _agent()
     agent.frame_time = 1.0
-    agent.step(_capture("platform"))
-    assert agent.device.taps == [tuple(params["tap"])]
+    agent.step(_capture("platform_start"))
+    assert agent.device.taps == []
+
+
+def _simulate(frame, direction, speed, params, latency=0.08, dt=1 / 240):
+    """Bola virtual sobre una captura real (el mundo quieto en sus coordenadas): avanza a `speed` px/s y cada
+    decisión del agente cambia su sentido `latency` s después. Devuelve dónde se sale del amarillo (o se acaba
+    el tiempo): sobre una captura, el camino visible termina a cierta altura y ahí acaba siempre."""
+    frame = frame.copy()
+    x, y = find_ball(frame, params)
+    frame[y - 20 : y + 21, x - 20 : x + 21][yellow_row(frame[y - 20 : y + 21, x - 20 : x + 21]) == 0] = (90, 225, 255)
+    bx, by, d, pending, last, t = float(x), float(y), direction, [], -1e9, 0.0
+    while t < 6:
+        if pending and t >= pending[0][0]:
+            d = pending.pop(0)[1]
+        intended = pending[-1][1] if pending else d
+        if t - last >= params["block_s"]:
+            ahead = free_distance(frame, int(bx), int(by), intended, params)
+            other = free_distance(frame, int(bx), int(by), -intended, params)
+            if should_turn(ahead, other, speed * params["look_s"] + params["margin_px"]):
+                pending.append((t + latency, -intended))
+                last = t
+        hx, hy = heading(d, params)
+        bx, by = bx + hx * speed * dt, by + hy * speed * dt
+        if not yellow_row(frame[int(by), int(bx)]):
+            break
+        t += dt
+    return int(bx), int(by)
+
+
+def test_simulated_ball_crosses_the_start_platform_into_the_path():
+    """Regresión del fallo en vivo: desde la plataforma inicial, la bola debe llegar al final del camino visible
+    (y~575 en esta captura), no caerse por el borde de la plataforma (y~800)."""
+    _, params = _agent()
+    for speed in (100, 150):
+        _, y = _simulate(_capture("platform_start"), -1, speed, params)
+        assert y < 600
 
 
 def test_reads_the_real_direction_on_the_start_platform():

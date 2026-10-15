@@ -27,15 +27,33 @@ def yellow_row(row: np.ndarray) -> np.ndarray:
     return (r > 200) & (g > 170) & (b < 150)
 
 
-def path_center(frame: np.ndarray, y: int, x: int, min_run: int) -> float | None:
-    """Centro del tramo amarillo de la fila `y` que contiene a `x` o, si ninguno, el más cercano; None si no hay."""
-    mask = yellow_row(frame[y])
-    edges = np.flatnonzero(np.diff(np.concatenate(([False], mask, [False])).astype(np.int8)))
-    runs = [(a, b) for a, b in zip(edges[::2], edges[1::2]) if b - a >= min_run]
-    if not runs:
-        return None
-    a, b = min(runs, key=lambda r: 0 if r[0] <= x < r[1] else min(abs(r[0] - x), abs(r[1] - x)))
-    return (a + b) / 2
+def heading(direction: int, params: dict[str, Any]) -> tuple[float, float]:
+    """Vector unitario (dx, dy) en pantalla del avance de la bola sobre el camino: los bordes del camino, y por
+    tanto los dos sentidos de avance, forman ~27° (derecha) y ~142° (izquierda) con la horizontal (no son
+    simétricos por el ángulo de la cámara; medido con Hough en la partida humana)."""
+    a = np.radians(params["heading_deg"][0 if direction > 0 else 1])
+    return float(np.cos(a)), float(-np.sin(a))
+
+
+def free_distance(frame: np.ndarray, x: int, y: int, direction: int, params: dict[str, Any]) -> float:
+    """px de camino amarillo que tiene la bola por delante si sigue en `direction` sin girar.
+
+    Es el mínimo de tres rayos paralelos (el central y uno a cada lado, a `ray_side_px`): así cuenta el ancho
+    de la bola, y yendo pegada a un borde la distancia sale corta aunque el centro aún tenga camino. Un rayo
+    termina en el primer par de puntos seguidos que no son amarillos (un punto suelto es ruido del borde)."""
+    dx, dy = heading(direction, params)
+    s = np.arange(params["ray_start_px"], params["ray_max_px"], params["ray_step_px"], dtype=np.float32)
+    shortest = float(params["ray_max_px"])
+    for side in (-params["ray_side_px"], 0, params["ray_side_px"]):
+        px = np.round(x - dy * side + s * dx).astype(int)  # (-dy, dx) es la perpendicular al avance
+        py = np.round(y + dx * side + s * dy).astype(int)
+        inside = (px >= 0) & (px < frame.shape[1]) & (py >= 0) & (py < frame.shape[0])
+        on_path = np.zeros(len(s), bool)
+        on_path[inside] = yellow_row(frame[py[inside], px[inside]])
+        off = np.flatnonzero(~on_path[:-1] & ~on_path[1:])
+        if len(off):
+            shortest = min(shortest, float(s[off[0]]))
+    return shortest
 
 
 class ScrollTracker:
@@ -89,26 +107,23 @@ class ScrollTracker:
         return self._rate(2) or 0.0
 
 
-def desired_direction(center: float | None, ball_x: int, current: int, margin: float) -> int:
-    """Hacia dónde debería ir la bola: hacia el lado donde queda el centro del camino por delante. Dentro del
-    margen se mantiene la dirección actual (evita tocar a cada fotograma cuando el camino está recto)."""
-    if center is None:
-        return current
-    if center > ball_x + margin:
-        return 1
-    if center < ball_x - margin:
-        return -1
-    return current
+def should_turn(ahead: float, other: float, trigger: float) -> bool:
+    """Girar cuando en la dirección actual queda menos camino que `trigger` (lo que la bola recorre mientras
+    el toque surte efecto, con margen) y en la otra queda más. Si en la otra tampoco hay, girar no arregla
+    nada: se sigue (en un tramo recto el camino de lado siempre es corto)."""
+    return ahead <= trigger and other > ahead
 
 
 class Zig(BaseAgent):
     """Una bola avanza por un camino amarillo en zigzag; cada toque cambia su dirección lateral (derecha <->
     izquierda) y se pierde al salirse del camino. La partida acelera con la distancia.
 
-    Se sigue el centro del camino: a unas filas por delante de la bola (más lejos cuanto más rápido baja el
-    camino, para compensar el retraso del toque) se mira dónde está el centro del tramo amarillo. Si queda al
-    otro lado de la bola que su dirección actual, se toca. La partida empieza en una plataforma ancha cuyo
-    centro queda al lado de la entrada del camino, así que la misma regla lleva la bola hasta ella.
+    En cada captura se mide cuánto camino queda por delante de la bola en sus dos sentidos posibles
+    (free_distance, con rayos sobre la propia captura) y se gira cuando el actual se acaba y el otro tiene más
+    (should_turn). La distancia a la que se gira es lo que la bola recorre en `look_s` s (retraso del toque,
+    ~0,06-0,1 s medidos en vivo, más margen): su velocidad sobre el camino se deduce de lo rápido que baja el
+    camino en pantalla. Vale igual para la plataforma ancha del principio (se va recto hasta su borde) que
+    para entrar en el camino y seguirlo; yendo pegada a un borde, el rayo lateral la hace corregir.
 
     La dirección la lleva el agente: empieza en `start_dir` (la bola sale siempre hacia la izquierda) y cada
     toque la invierte. Leerla del desplazamiento del camino (ScrollTracker) va con retraso: fiarse de ella
@@ -138,15 +153,21 @@ class Zig(BaseAgent):
         self._resync(self._scroll.direction())
         current = self._dir
         x, y = ball
-        ahead = int(np.clip(self._scroll.speed() * self.params["look_s"], *self.params["look_px"]))
-        center = path_center(frame, y - ahead, x, self.params["min_run"])
-        want = desired_direction(center, x, current, self.params["margin_px"])
-        if want == current:
+        ahead = free_distance(frame, x, y, current, self.params)
+        other = free_distance(frame, x, y, -current, self.params)
+        trigger = self.ball_speed(current) * self.params["look_s"] + self.params["margin_px"]
+        if not should_turn(ahead, other, trigger):
             return
         self.device.tap(*self.params["tap"])
-        self._dir, self._tapped_at, self._disagree_since = want, self.frame_time, None
-        log.info("Toque %+d -> %+d (bola x=%d, centro adelante=%s a %d px, bajada %.0f px/s)",
-                 current, want, x, None if center is None else round(center), ahead, self._scroll.speed())
+        self._dir, self._tapped_at, self._disagree_since = -current, self.frame_time, None
+        log.info("Toque %+d -> %+d (bola x=%d, camino delante %.0f px / al otro lado %.0f px, giro a %.0f px)",
+                 current, -current, x, ahead, other, trigger)
+
+    def ball_speed(self, direction: int) -> float:
+        """px/s de la bola sobre el camino: la cámara la mantiene a la misma altura, así que el camino baja en
+        pantalla lo que ella sube; dividiendo por la componente vertical de su avance sale la velocidad."""
+        down = max(self._scroll.speed(), self.params["min_scroll_pxs"])
+        return down / abs(heading(direction, self.params)[1])
 
     def _resync(self, measured: int | None) -> None:
         """Si la dirección leída contradice a la de los toques durante `resync_s`, manda la leída."""

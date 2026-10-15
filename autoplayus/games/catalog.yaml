@@ -159,7 +159,7 @@ games:
       pip_max: 90                    # canal máximo de un píxel de punto (negro)
       pip_min_px: 60                 # área mínima de una mancha para contarla como punto (~320-370 asentado)
       pip_frac: 0.0525               # fracción de la zona que ocupa cada punto: el blanco restante es 1 - n * pip_frac
-      stable_s: 0.04                 # s que la misma lectura coherente debe mantenerse (dados ya quietos) antes de teclear
+      stable_s: 0.018                # s que la misma lectura coherente debe mantenerse antes de teclear: algo más de un fotograma del juego (~60 fps). En la partida humana no hubo ninguna lectura coherente equivocada con los dados rodando
       keys:                          # centro de cada tecla del teclado numérico
         "1": [181, 893]
         "2": [360, 893]
@@ -172,8 +172,8 @@ games:
         "9": [539, 1090]
         "0": [360, 1188]
       backspace: [539, 1188]
-      digit_gap_s: 0.03              # s entre las dos cifras de una suma de dos dígitos
+      digit_gap_s: 0.015             # s entre las dos cifras de una suma de dos dígitos (con 0,03 se registraron siempre; 0 sin probar)
       typed_box: [690, 830, 150, 570]  # y0, y1, x0, x1 de la zona donde aparece el número tecleado
       green_px: 3000                 # píxeles verdes mínimos en esa zona para dar la suma por acertada (~9000-13000 al acertar)
-      check_s: 0.6                   # s tras teclear sin ver el número en verde para considerar que falló y repetir
+      check_s: 0.4                   # s tras teclear sin ver el número en verde para considerar que falló y repetir (el verde salió en <0,2 s)
       max_retries: 2

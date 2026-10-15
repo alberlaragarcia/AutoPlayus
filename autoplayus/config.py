@@ -10,7 +10,7 @@ COMMON_TEMPLATES_DIR = TEMPLATES_DIR / "common"
 
 ADB_PATH = r"C:\Program Files\BlueStacks_nxt\HD-Adb.exe"  # ruta a adb.exe si no está en el PATH
 PHONE_ADB_PATH = r"C:\Users\ximon\android-platform-tools\platform-tools\adb.exe"  # ADB de Google: el de BlueStacks (1.0.36) no ve el móvil
-ADB_SERIAL = "127.0.0.1:5556"  # None = único dispositivo conectado
+ADB_SERIAL = None  # único dispositivo conectado (BlueStacks cambia entre emulator-5554 y 127.0.0.1:5556 según la instancia)
 
 # Ventana de BlueStacks (toques rápidos como clics de Windows) y tamaño de pantalla del Android
 BLUESTACKS_WINDOW = "BlueStacks App Player"

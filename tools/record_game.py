@@ -1,7 +1,7 @@
 """Graba capturas con su hora mientras juegas tú (no pulsa nada).
 
 Uso:  python tools/record_game.py <carpeta_salida> [serial_adb]
-(sin serial se usa BlueStacks; con un móvil real, el serial que muestra `adb devices`)
+(sin serial se usa BlueStacks, capturando la ventana (~3 ms); con un móvil real, el serial que muestra `adb devices`)
 Se detiene cuando se crea el archivo <carpeta_salida>/STOP (o con Ctrl+C).
 Genera <carpeta_salida>/NNNN.png y frames.csv (índice, segundos desde el inicio de la captura).
 """
@@ -15,6 +15,7 @@ import cv2
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from autoplayus import config  # noqa: E402
+from autoplayus.device import create_device  # noqa: E402
 from autoplayus.device.adb import AdbDevice  # noqa: E402
 
 
@@ -22,7 +23,7 @@ def main() -> None:
     out = Path(sys.argv[1])
     out.mkdir(parents=True, exist_ok=True)
     stop_file = out / "STOP"
-    device = AdbDevice(sys.argv[2], config.PHONE_ADB_PATH) if len(sys.argv) > 2 else AdbDevice()
+    device = AdbDevice(sys.argv[2], config.PHONE_ADB_PATH) if len(sys.argv) > 2 else create_device()
     t0 = time.time()
     i = 0
     with open(out / "frames.csv", "w") as csv:

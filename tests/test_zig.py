@@ -162,3 +162,13 @@ def test_reads_the_real_direction_on_the_start_platform():
     for k, name in enumerate(("platform_1", "platform_2", "platform")):
         tracker.update(_capture(name), k * 0.05)
     assert tracker.direction() == -1
+
+
+def test_simulated_ball_climbs_the_fast_zigzag_staircase():
+    """Regresión de Zig_run3 (153 puntos): a ~400 px/s tras un tramo largo a la derecha llega una escalera de
+    zigzags cortos. Con 0,2 s de bloqueo tras cada toque giraba tarde y caía (y~710); debe llegar al final del
+    camino visible (y~600)."""
+    _, params = _agent()
+    for speed in (350, 400, 450):
+        _, y = _simulate(_capture("staircase"), 1, speed, params)
+        assert y < 640, speed

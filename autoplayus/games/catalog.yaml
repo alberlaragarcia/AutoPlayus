@@ -138,11 +138,11 @@ games:
       ray_start_px: 20               # los rayos empiezan fuera de la bola (radio ~16)
       ray_max_px: 300                # alcance máximo de los rayos
       ray_step_px: 3                 # paso entre puntos de un rayo
-      ray_side_px: 10                # separación de los rayos laterales respecto al central (ancho de la bola)
+      ray_side_px: 6                 # separación de los rayos laterales respecto al central (ancho de la bola; 6 mejor que 10 en el simulador)
       look_s: 0.12                   # s que recorre la bola entre decidir girar y girar de verdad (retraso medido en vivo 0,06-0,1 s, más margen)
-      margin_px: 8                   # px de camino que se dejan además de lo recorrido en look_s
+      margin_px: 14                  # px de camino que se dejan además de lo recorrido en look_s
       min_scroll_pxs: 50             # bajada mínima supuesta del camino (px/s) mientras aún no se ha medido (~60 al empezar)
-      block_s: 0.2                   # s tras un toque sin volver a decidir (la dirección tarda unos fotogramas en leerse; el intervalo mínimo humano fue ~0,17)
+      block_s: 0.1                   # s tras un toque sin volver a decidir: algo más que el retraso del toque (0,06-0,1 s). Con 0,2 llegaba tarde a los zigzags seguidos a velocidad alta
       start_dir: -1                  # dirección de la bola al empezar (sale hacia la izquierda; luego cada toque la invierte)
       scroll_window_s: 0.1           # s sobre los que se promedia el desplazamiento del camino
       dir_min_pxs: 30                # px/s de desplazamiento lateral mínimo para fiarse de la dirección leída (~90 al principio, ~140 al final)

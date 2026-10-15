@@ -61,7 +61,7 @@ def _moving_path(shift_x, shift_y, n=10):
 
 def test_scroll_tracker_reads_direction_and_speed():
     params = load_catalog()["Zig"].params
-    for shift_x, expected in ((+4, -1), (-4, +1)):  # el camino va al lado contrario de la bola
+    for shift_x, expected in ((+4, +1), (-4, -1)):  # el camino se desplaza hacia el mismo lado que la bola
         tracker = ScrollTracker(params)
         for i, f in enumerate(_moving_path(shift_x, 8)):
             tracker.update(f, i * 0.02)
@@ -69,10 +69,20 @@ def test_scroll_tracker_reads_direction_and_speed():
         assert 300 < tracker.speed() < 500  # 8 px cada 0,02 s
 
 
+def test_scroll_tracker_does_not_depend_on_capture_rate():
+    """Con capturas el triple de rápidas (y el juego repitiendo imagen) la lectura en px/s es la misma."""
+    params = load_catalog()["Zig"].params
+    tracker = ScrollTracker(params)
+    for i, f in enumerate(_moving_path(2, 4, n=12)):
+        for k in range(3):  # cada imagen del juego llega en 3 capturas
+            tracker.update(f, i * 0.02 + k * 0.0066)
+    assert tracker.direction() == 1  # 100 px/s de desplazamiento lateral
+
+
 def test_taps_when_the_path_ahead_is_on_the_other_side_and_not_twice():
     agent, params = _agent()
     frame = _capture("mid_game")
-    agent._assumed = -1  # la bola va a la izquierda, el camino por delante tuerce a la derecha
+    assert agent._dir == -1  # al empezar la bola va a la izquierda; el camino por delante queda a la derecha
     agent.frame_time = 10.0
     agent.step(frame)
     assert agent.device.taps == [tuple(params["tap"])]
@@ -81,9 +91,39 @@ def test_taps_when_the_path_ahead_is_on_the_other_side_and_not_twice():
     assert len(agent.device.taps) == 1
 
 
-def test_does_not_tap_without_knowing_the_direction_or_seeing_the_ball():
+def test_does_not_tap_without_seeing_the_ball():
     agent, _ = _agent()
     agent.frame_time = 1.0
-    agent.step(_capture("mid_game"))  # sin dirección conocida
-    agent.step(_capture("tutorial"))  # sin bola
+    agent.step(_capture("tutorial"))
+    agent.step(_capture("end"))
     assert agent.device.taps == []
+
+
+def test_corrects_its_direction_only_after_a_sustained_disagreement():
+    agent, params = _agent()
+    agent.frame_time = 0.0
+    agent._resync(+1)
+    assert agent._dir == -1  # una lectura suelta no basta
+    agent.frame_time = params["resync_s"]
+    agent._resync(+1)
+    assert agent._dir == 1
+    agent.frame_time += 0.01
+    agent._resync(None)  # sin lectura fiable no cambia nada
+    assert agent._dir == 1
+
+
+def test_steers_towards_the_start_platform_centre():
+    """En la plataforma inicial (la bola sale a la izquierda y su centro queda a la derecha) toca enseguida."""
+    agent, params = _agent()
+    agent.frame_time = 1.0
+    agent.step(_capture("platform"))
+    assert agent.device.taps == [tuple(params["tap"])]
+
+
+def test_reads_the_real_direction_on_the_start_platform():
+    """Fotogramas reales (0,05 s entre sí) con la bola yendo a la izquierda por la plataforma inicial."""
+    params = load_catalog()["Zig"].params
+    tracker = ScrollTracker(params)
+    for k, name in enumerate(("platform_1", "platform_2", "platform")):
+        tracker.update(_capture(name), k * 0.05)
+    assert tracker.direction() == -1

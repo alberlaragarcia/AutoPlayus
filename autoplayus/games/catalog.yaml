@@ -139,6 +139,8 @@ games:
       look_px: [24, 100]             # límites de esa distancia (por debajo de ~22 px la bola tapa el camino)
       margin_px: 6                   # el centro del camino debe pasar de la bola en esta cantidad para cambiar de dirección
       block_s: 0.2                   # s tras un toque sin volver a decidir (la dirección tarda unos fotogramas en leerse; el intervalo mínimo humano fue ~0,17)
-      dir_frames: 6                  # fotogramas con los que se suaviza el desplazamiento lateral del camino
-      dir_min: 0.25                  # px/fotograma de desplazamiento lateral mínimo para fiarse de la dirección
+      start_dir: -1                  # dirección de la bola al empezar (sale hacia la izquierda; luego cada toque la invierte)
+      scroll_window_s: 0.1           # s sobre los que se promedia el desplazamiento del camino
+      dir_min_pxs: 30                # px/s de desplazamiento lateral mínimo para fiarse de la dirección leída (~90 al principio, ~140 al final)
+      resync_s: 0.4                  # s seguidos que la dirección leída debe contradecir a la de los toques para corregirla
       tap: [360, 1000]               # punto donde se toca (cualquiera sirve: cambia la dirección)

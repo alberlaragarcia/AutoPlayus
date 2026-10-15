@@ -148,3 +148,32 @@ games:
       dir_min_pxs: 30                # px/s de desplazamiento lateral mínimo para fiarse de la dirección leída (~90 al principio, ~140 al final)
       resync_s: 0.4                  # s seguidos que la dirección leída debe contradecir a la de los toques para corregirla
       tap: [360, 1000]               # punto donde se toca (cualquiera sirve: cambia la dirección)
+
+  - id: DiceRoll
+    name: Dice Roll
+    agent: dice_roll
+    params:
+      dice: [[276, 431], [444, 431], [276, 599], [444, 599]]  # centro de cada dado, por filas (caras de ~105 px)
+      die_half: 48                   # semilado de la zona que se analiza dentro de cada cara (queda dentro aunque la cara no esté perfecta)
+      white_min: 215                 # canal mínimo (B,G,R) de un píxel blanco de la cara (~240)
+      pip_max: 90                    # canal máximo de un píxel de punto (negro)
+      pip_min_px: 60                 # área mínima de una mancha para contarla como punto (~320-370 asentado)
+      pip_frac: 0.0525               # fracción de la zona que ocupa cada punto: el blanco restante es 1 - n * pip_frac
+      stable_s: 0.04                 # s que la misma lectura coherente debe mantenerse (dados ya quietos) antes de teclear
+      keys:                          # centro de cada tecla del teclado numérico
+        "1": [181, 893]
+        "2": [360, 893]
+        "3": [539, 893]
+        "4": [181, 992]
+        "5": [360, 992]
+        "6": [539, 992]
+        "7": [181, 1090]
+        "8": [360, 1090]
+        "9": [539, 1090]
+        "0": [360, 1188]
+      backspace: [539, 1188]
+      digit_gap_s: 0.03              # s entre las dos cifras de una suma de dos dígitos
+      typed_box: [690, 830, 150, 570]  # y0, y1, x0, x1 de la zona donde aparece el número tecleado
+      green_px: 3000                 # píxeles verdes mínimos en esa zona para dar la suma por acertada (~9000-13000 al acertar)
+      check_s: 0.6                   # s tras teclear sin ver el número en verde para considerar que falló y repetir
+      max_retries: 2

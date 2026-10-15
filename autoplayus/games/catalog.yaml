@@ -126,3 +126,19 @@ games:
       off_bgr: [72, 55, 45]          # color de un círculo apagado
       off_tol: 20                    # diferencia máxima por canal con off_bgr para darlo por apagado
       max_lit: 1                     # círculos encendidos a la vez: el resto debe verse apagado (si no, no es la cuadrícula)
+
+  - id: Zig
+    name: Zig
+    agent: zig
+    params:
+      ball_rows: [600, 1000]         # filas donde puede estar la bola (negra; la cámara la mantiene cerca de y~800-830)
+      ball_dark: 50                  # valor máximo (B,G,R) de un píxel de la bola
+      ball_px: [60, 300]             # píxeles oscuros mínimos y máximos (muestreando 1 de cada 2) para dar la bola por vista (~120-140)
+      min_run: 20                    # ancho mínimo de un tramo amarillo para contarlo como camino
+      look_s: 0.12                   # s de anticipación: la fila que se mira queda a esta distancia de la bola según la velocidad de bajada (a calibrar con los instantes de toque de una partida real: sobre la grabación humana 0,08 coincide con el giro observado, y el giro ocurre tras el retraso del juego)
+      look_px: [24, 100]             # límites de esa distancia (por debajo de ~22 px la bola tapa el camino)
+      margin_px: 6                   # el centro del camino debe pasar de la bola en esta cantidad para cambiar de dirección
+      block_s: 0.2                   # s tras un toque sin volver a decidir (la dirección tarda unos fotogramas en leerse; el intervalo mínimo humano fue ~0,17)
+      dir_frames: 6                  # fotogramas con los que se suaviza el desplazamiento lateral del camino
+      dir_min: 0.25                  # px/fotograma de desplazamiento lateral mínimo para fiarse de la dirección
+      tap: [360, 1000]               # punto donde se toca (cualquiera sirve: cambia la dirección)

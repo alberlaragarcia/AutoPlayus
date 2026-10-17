@@ -14,7 +14,7 @@ class FakeDevice:
 
 
 def _agent():
-    params = dict(load_catalog()["Grid"].params, tap_gap_s=0.0)
+    params = load_catalog()["Grid"].params
     agent = Grid(FakeDevice(), params)
     agent.on_start()
     return agent, params
@@ -46,30 +46,53 @@ def _tiles(frame, params, state):
     return [(x, y) for x, y, s in find_tiles(frame, params) if s == state]
 
 
-def test_taps_the_pattern_then_okay_once_it_is_marked():
+def _run(agent, frame, start, steps, dt):
+    """Pasa `frame` al agente `steps` veces cada `dt` s; devuelve el instante siguiente."""
+    for k in range(steps):
+        agent.frame_time = start + k * dt
+        agent.step(frame)
+    return start + steps * dt
+
+
+def test_taps_the_pattern_one_by_one_then_okay_once_it_is_marked():
     agent, params = _agent()
     pattern = _tiles(_capture("pattern4"), params, "green")
-    agent.frame_time = 1.0
-    agent.step(_capture("pattern4"))
-    agent.frame_time = 2.0
-    agent.step(_capture("done4"))  # aparece "Okay!": se tocan las 7 casillas
+    gap = params["tap_gap_s"] * 1.05  # algo más que el intervalo (en vivo el tiempo es continuo)
+    t = _run(agent, _capture("pattern4"), 1.0, 1, gap)
+    t = _run(agent, _capture("done4"), t, 1, gap)  # aparece "Okay!": se encolan las 7 casillas
+    assert agent.device.taps == []
+    t = _run(agent, _capture("done4"), t, 2, gap / 2)  # dos capturas en un mismo intervalo: un solo toque
+    assert len(agent.device.taps) == 1
+    t = _run(agent, _capture("done4"), t, 8, gap)
     assert sorted(agent.device.taps) == sorted(pattern)
-    agent.frame_time = 2.0 + params["verify_s"]
-    agent.step(_capture("done4"))  # las amarillas son el patrón: Okay
+    _run(agent, _capture("done4"), t + params["verify_s"], 2, 0.01)  # misma lectura dos veces: Okay
     assert agent.device.taps[-1] == tuple(params["okay"])
     assert agent._state == "sent"
 
 
+def test_does_not_check_while_a_tile_is_animating():
+    """Grid_run1: comprobar con casillas sin ver (animándose tras el toque) desmarcó el patrón entero."""
+    agent, params = _agent()
+    gap = params["tap_gap_s"] * 1.05  # algo más que el intervalo (en vivo el tiempo es continuo)
+    t = _run(agent, _capture("pattern4"), 1.0, 1, gap)
+    t = _run(agent, _capture("done4"), t, 9, gap)
+    n = len(agent.device.taps)
+    animating = _capture("done4").copy()
+    x, y = _tiles(animating, params, "yellow")[0]
+    animating[y - 70 : y + 70, x - 70 : x + 70] = params["background_bgr"]  # una casilla que no se ve
+    _run(agent, animating, t + params["verify_s"], 5, 0.05)
+    assert len(agent.device.taps) == n  # ni corrige ni envía
+
+
 def test_fixes_missing_cells_before_sending():
     agent, params = _agent()
-    agent.frame_time = 1.0
-    agent.step(_capture("pattern5"))
-    agent.frame_time = 2.0
-    agent.step(_capture("input5"))
+    gap = params["tap_gap_s"] * 1.05  # algo más que el intervalo (en vivo el tiempo es continuo)
+    t = _run(agent, _capture("pattern5"), 1.0, 1, gap)
+    t = _run(agent, _capture("input5"), t, 13, gap)
     n = len(agent.device.taps)
     assert n == 11
-    agent.frame_time = 2.0 + params["verify_s"]
-    agent.step(_capture("partial5"))  # solo 5 marcadas (y ninguna sobra): se tocan las 6 que faltan
+    t = _run(agent, _capture("partial5"), t + params["verify_s"], 2, 0.01)  # 5 marcadas, ninguna sobra
+    t = _run(agent, _capture("partial5"), t, 8, gap)
     fixes = agent.device.taps[n:]
     assert len(fixes) == 6 and tuple(params["okay"]) not in fixes
     pattern = _tiles(_capture("pattern5"), params, "green")

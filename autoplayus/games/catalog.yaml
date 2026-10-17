@@ -196,7 +196,7 @@ games:
       tile_square_tol: 12            # diferencia máxima entre ancho y alto de una casilla
       okay_box: [270, 1150, 450, 1200]  # x0, y0, x1, y1 dentro del botón "Okay!" (verde)
       okay: [360, 1174]              # centro del botón "Okay!"
-      tap_gap_s: 0.03                # s entre toques a casillas
-      verify_s: 0.25                 # s tras tocar antes de comprobar que las amarillas son el patrón
+      tap_gap_s: 0.15                # s entre toques a casillas, de una en una (con 0,03 el juego perdía toques)
+      verify_s: 0.4                  # s tras el último toque antes de comprobar (la casilla tocada se anima y no se lee bien)
       max_fixes: 3                   # correcciones como máximo por nivel
       tutorial_max: 14               # canal máximo del fondo en (360, 300) con el tutorial superpuesto (en juego ~26)

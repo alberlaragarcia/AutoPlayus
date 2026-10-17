@@ -1,5 +1,4 @@
 import logging
-import time
 from typing import Any
 
 import cv2
@@ -58,8 +57,11 @@ class Grid(BaseAgent):
     Fallar termina la partida (el juego enseña en rojo el patrón correcto).
 
     Mientras se ve el patrón se guarda el conjunto de casillas verdes más grande visto (entran con una pequeña
-    animación). En cuanto aparece "Okay!" se tocan todas, se comprueba que las amarillas sean exactamente esas
-    (si falta o sobra alguna se vuelve a tocar: tocar alterna) y se pulsa "Okay!".
+    animación). En cuanto aparece "Okay!" se tocan una a una (`tap_gap_s` entre toques: el juego no acepta
+    toques casi simultáneos), se comprueba que las amarillas sean exactamente esas (si falta o sobra alguna se
+    vuelve a tocar: tocar alterna) y se pulsa "Okay!". Al tocar, el juego anima la casilla y durante la
+    animación no se ve bien la cuadrícula: solo se comprueba con todas las casillas a la vista y la misma
+    lectura en dos capturas seguidas (Grid_run1 desmarcó el patrón entero por comprobar a mitad de animación).
 
     Al acertar, el juego confirma la respuesta enseñándola en verde en la cuadrícula del nivel acabado y justo
     después muestra la del siguiente con su patrón. Por eso, tras enviar, los verdes contenidos en lo enviado
@@ -78,12 +80,21 @@ class Grid(BaseAgent):
         self._state = "watch"  # watch: leyendo el patrón; typed: casillas tocadas; sent: "Okay!" pulsado; between: entre niveles
         self._sent: list[tuple[int, int]] = []  # última respuesta enviada
         self._fallback: list[tuple[int, int]] = []  # verdes vistos entre niveles que caben en lo enviado
-        self._typed_at = 0.0
+        self._queue: list[tuple[int, int]] = []  # casillas por tocar, de una en una
+        self._last_tap = -1e9
+        self._grid_n = 0  # casillas de la cuadrícula de este nivel
+        self._last_read: list[tuple[int, int]] | None = None  # lectura anterior de las marcadas
         self._fixes = 0
         self._playing = False
         self._last_start_tap = -1e9
 
     def step(self, frame: np.ndarray) -> None:
+        now = self.frame_time
+        if self._queue:
+            if now - self._last_tap >= self.params["tap_gap_s"]:
+                self.device.tap(*self._queue.pop(0))
+                self._last_tap = now
+            return
         tiles = find_tiles(frame, self.params)
         if not tiles:
             self._retap_tutorial(frame)
@@ -101,7 +112,7 @@ class Grid(BaseAgent):
                     return
                 self._state, self._pattern, self._fixes = "watch", [], 0  # verde nuevo: empieza otro nivel
             if self._state == "watch" and len(greens) >= len(self._pattern):
-                self._pattern = greens
+                self._pattern, self._grid_n = greens, len(tiles)
                 self._tile_tol = self._tile_size(tiles) / 2
             return
         if okay and self._state == "between" and self._fallback:
@@ -109,13 +120,16 @@ class Grid(BaseAgent):
             self._state, self._pattern, self._fixes = "watch", self._fallback, 0
         if not okay or not self._pattern:
             return
-        now = self.frame_time
         if self._state == "watch":
-            log.info("Patrón de %d casillas (cuadrícula de %d)", len(self._pattern), len(tiles))
-            self._tap_all(self._pattern)
-            self._state, self._typed_at = "typed", now
-        elif self._state == "typed" and now - self._typed_at >= self.params["verify_s"]:
-            marked = [(x, y) for x, y, s in tiles if s == "yellow"]
+            log.info("Patrón de %d casillas (cuadrícula de %d)", len(self._pattern), self._grid_n)
+            self._queue, self._state, self._last_read = list(self._pattern), "typed", None
+        elif self._state == "typed" and now - self._last_tap >= self.params["verify_s"]:
+            if len(tiles) != self._grid_n:
+                return  # alguna casilla animándose: no se ve la cuadrícula entera
+            marked = sorted((x, y) for x, y, s in tiles if s == "yellow")
+            if marked != self._last_read:
+                self._last_read = marked  # esperar a leer lo mismo dos veces
+                return
             missing = match(self._pattern, marked, self._tile_tol)
             extra = match(marked, self._pattern, self._tile_tol)
             if not missing and not extra:
@@ -125,19 +139,12 @@ class Grid(BaseAgent):
             elif self._fixes < self.params["max_fixes"]:
                 self._fixes += 1
                 log.warning("Corrigiendo: faltan %d, sobran %d", len(missing), len(extra))
-                self._tap_all(missing + extra)
-                self._typed_at = now
+                self._queue, self._last_read = missing + extra, None
 
     def _tile_size(self, tiles: list[Tile]) -> float:
         xs = sorted({x for x, _, _ in tiles})
         gaps = [b - a for a, b in zip(xs, xs[1:]) if b - a > 20]
         return float(min(gaps)) if gaps else 100.0
-
-    def _tap_all(self, points: list[tuple[int, int]]) -> None:
-        for k, (x, y) in enumerate(points):
-            if k:
-                time.sleep(self.params["tap_gap_s"])
-            self.device.tap(x, y)
 
     def _retap_tutorial(self, frame: np.ndarray) -> None:
         """Tutorial ("Memoriza el patrón, luego recréalo") aún en pantalla: volver a tocar cada segundo."""

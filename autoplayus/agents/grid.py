@@ -25,17 +25,24 @@ def find_tiles(frame: np.ndarray, params: dict[str, Any]) -> list[Tile]:
     for (_, _, w, h, _), (cx, cy) in zip(stats[1:], centers[1:]):
         if lo <= w <= hi and lo <= h <= hi and abs(w - h) <= params["tile_square_tol"]:
             x, y = int(cx), int(cy) + y0
-            b, g, r = frame[y - 3 : y + 4, x - 3 : x + 4].reshape(-1, 3).mean(axis=0)
-            if g > 180 and b > 120 and r < 60:
-                state = "green"
-            elif r > 230 and g > 180 and b < 140:
-                state = "yellow"
-            elif r > 200 and g < 120:
-                state = "red"
-            else:
-                state = "dark"
-            tiles.append((x, y, state))
+            state = cell_state(frame, x, y)
+            tiles.append((x, y, "dark" if state == "other" else state))
     return tiles
+
+
+def cell_state(frame: np.ndarray, x: int, y: int) -> str:
+    """Estado de la casilla centrada en (x, y) según el color de su centro: "green" (patrón), "yellow"
+    (marcada), "red" (patrón revelado al fallar), "dark" (apagada, ~58,45,42) u "other" (a medio animar)."""
+    b, g, r = frame[y - 3 : y + 4, x - 3 : x + 4].reshape(-1, 3).mean(axis=0)
+    if g > 180 and b > 120 and r < 60:
+        return "green"
+    if r > 230 and g > 180 and b < 140:
+        return "yellow"
+    if r > 200 and g < 120:
+        return "red"
+    if abs(b - 58) < 25 and abs(g - 45) < 25 and abs(r - 42) < 25:
+        return "dark"
+    return "other"
 
 
 def okay_visible(frame: np.ndarray, params: dict[str, Any]) -> bool:
@@ -57,11 +64,15 @@ class Grid(BaseAgent):
     Fallar termina la partida (el juego enseña en rojo el patrón correcto).
 
     Mientras se ve el patrón se guarda el conjunto de casillas verdes más grande visto (entran con una pequeña
-    animación). En cuanto aparece "Okay!" se tocan una a una (`tap_gap_s` entre toques: el juego no acepta
-    toques casi simultáneos), se comprueba que las amarillas sean exactamente esas (si falta o sobra alguna se
-    vuelve a tocar: tocar alterna) y se pulsa "Okay!". Al tocar, el juego anima la casilla y durante la
-    animación no se ve bien la cuadrícula: solo se comprueba con todas las casillas a la vista y la misma
-    lectura en dos capturas seguidas (Grid_run1 desmarcó el patrón entero por comprobar a mitad de animación).
+    animación), y la posición de todas las casillas. En cuanto aparece "Okay!" se tocan una a una
+    (`tap_gap_s` entre toques: el juego no acepta toques casi simultáneos), se comprueba que las amarillas sean
+    exactamente esas (si falta o sobra alguna se vuelve a tocar: tocar alterna) y se pulsa "Okay!".
+
+    Para comprobar se lee el color del centro de cada casilla en las posiciones guardadas, sin volver a buscar
+    las casillas: marcadas se ven algo más grandes y las adyacentes se juntan en una sola mancha (Grid_run2
+    tenía el patrón bien marcado y no envió porque solo encontraba 9 de 12 casillas). Se comprueba cuando
+    ninguna está a medio animar y la lectura se repite igual en dos capturas seguidas (Grid_run1 desmarcó el
+    patrón entero por comprobar a mitad de animación).
 
     Al acertar, el juego confirma la respuesta enseñándola en verde en la cuadrícula del nivel acabado y justo
     después muestra la del siguiente con su patrón. Por eso, tras enviar, los verdes contenidos en lo enviado
@@ -82,7 +93,7 @@ class Grid(BaseAgent):
         self._fallback: list[tuple[int, int]] = []  # verdes vistos entre niveles que caben en lo enviado
         self._queue: list[tuple[int, int]] = []  # casillas por tocar, de una en una
         self._last_tap = -1e9
-        self._grid_n = 0  # casillas de la cuadrícula de este nivel
+        self._cells: list[tuple[int, int]] = []  # centros de todas las casillas de este nivel
         self._last_read: list[tuple[int, int]] | None = None  # lectura anterior de las marcadas
         self._fixes = 0
         self._playing = False
@@ -104,6 +115,11 @@ class Grid(BaseAgent):
         okay = okay_visible(frame, self.params)
         if self._state == "sent" and not okay:
             self._state, self._fallback = "between", []
+        if greens and not okay and self._state == "typed":
+            # Sin haber pulsado "Okay!", ya hay verdes: el juego envió solo lo marcado al agotarse el tiempo
+            # (Grid_run2) y esto es su confirmación o ya el patrón del nivel siguiente.
+            log.warning("El juego envió la respuesta por tiempo")
+            self._state, self._sent, self._fallback, self._queue = "between", self._pattern, [], []
         if greens and not okay:
             if self._state == "between":
                 if not match(greens, self._sent, self._tile_tol):  # cabe en lo enviado: es la confirmación
@@ -112,7 +128,7 @@ class Grid(BaseAgent):
                     return
                 self._state, self._pattern, self._fixes = "watch", [], 0  # verde nuevo: empieza otro nivel
             if self._state == "watch" and len(greens) >= len(self._pattern):
-                self._pattern, self._grid_n = greens, len(tiles)
+                self._pattern, self._cells = greens, [(x, y) for x, y, _ in tiles]
                 self._tile_tol = self._tile_size(tiles) / 2
             return
         if okay and self._state == "between" and self._fallback:
@@ -121,12 +137,13 @@ class Grid(BaseAgent):
         if not okay or not self._pattern:
             return
         if self._state == "watch":
-            log.info("Patrón de %d casillas (cuadrícula de %d)", len(self._pattern), self._grid_n)
+            log.info("Patrón de %d casillas (cuadrícula de %d)", len(self._pattern), len(self._cells))
             self._queue, self._state, self._last_read = list(self._pattern), "typed", None
         elif self._state == "typed" and now - self._last_tap >= self.params["verify_s"]:
-            if len(tiles) != self._grid_n:
-                return  # alguna casilla animándose: no se ve la cuadrícula entera
-            marked = sorted((x, y) for x, y, s in tiles if s == "yellow")
+            states = [cell_state(frame, x, y) for x, y in self._cells]
+            if "other" in states or "green" in states:
+                return  # alguna casilla a medio animar
+            marked = sorted(c for c, s in zip(self._cells, states) if s == "yellow")
             if marked != self._last_read:
                 self._last_read = marked  # esperar a leer lo mismo dos veces
                 return

@@ -120,3 +120,29 @@ def test_retaps_the_tutorial():
     agent.frame_time = 2.1
     agent.step(_capture("tutorial"))
     assert len(agent.device.taps) == 2
+
+
+def test_reads_marked_cells_even_when_adjacent_ones_merge():
+    """Grid_run2: marcadas se ven más grandes y las adyacentes se juntan en una mancha; el agente solo encontraba
+    9 de 12 casillas y no enviaba. Leyendo el centro de las posiciones guardadas se ve el patrón completo."""
+    agent, params = _agent()
+    gap = params["tap_gap_s"] * 1.05
+    assert len(find_tiles(_capture("done2_merged"), params)) < 12  # la búsqueda de casillas falla aquí
+    t = _run(agent, _capture("pattern2"), 1.0, 1, gap)
+    t = _run(agent, _capture("done2_merged"), t, 10, gap)  # tocar las 8 (la captura ya las muestra marcadas)
+    _run(agent, _capture("done2_merged"), t + params["verify_s"], 2, 0.01)
+    assert agent.device.taps[-1] == tuple(params["okay"])
+
+
+def test_recovers_when_the_game_submits_on_timeout():
+    """Grid_run2: sin pulsar "Okay!", el juego envió lo marcado al acabarse el tiempo, enseñó la confirmación y
+    pasó al nivel 3. El agente seguía esperando para comprobar el nivel 2 y no jugó el 3."""
+    agent, params = _agent()
+    gap = params["tap_gap_s"] * 1.05
+    t = _run(agent, _capture("pattern2"), 1.0, 1, gap)
+    t = _run(agent, _capture("input5"), t, 10, gap)  # "Okay!" visible: marca las 8 (estado "typed")
+    assert agent._state == "typed" and not agent._queue
+    t = _run(agent, _capture("confirm2"), t, 2, gap)  # confirmación en verde del nivel 2
+    assert agent._state == "between"
+    _run(agent, _capture("pattern3"), t, 2, gap)
+    assert agent._state == "watch" and len(agent._pattern) == 10

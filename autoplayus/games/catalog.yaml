@@ -184,3 +184,19 @@ games:
       lead_s: 0.05                   # s antes del asentamiento previsto a los que se teclea (el toque tarda ~0,07 s en llegar al juego)
       fallback_s: 0.1                # s tras asentarse sin ver nada tecleado para dar el adelanto por rechazado
       typed_px: 1500                 # píxeles blancos o verdes en typed_box para dar por visible un número tecleado (~3000 por cifra)
+
+  - id: Grid
+    name: Grid
+    agent: grid
+    params:
+      grid_rows: [380, 1110]         # filas donde está la cuadrícula
+      background_bgr: [26, 19, 18]   # color del fondo
+      background_tol: 12             # diferencia mínima con el fondo para contar como casilla
+      tile_px: [40, 170]             # lado mínimo y máximo de una casilla (~116 px en 5x5; menores al crecer la cuadrícula)
+      tile_square_tol: 12            # diferencia máxima entre ancho y alto de una casilla
+      okay_box: [270, 1150, 450, 1200]  # x0, y0, x1, y1 dentro del botón "Okay!" (verde)
+      okay: [360, 1174]              # centro del botón "Okay!"
+      tap_gap_s: 0.03                # s entre toques a casillas
+      verify_s: 0.25                 # s tras tocar antes de comprobar que las amarillas son el patrón
+      max_fixes: 3                   # correcciones como máximo por nivel
+      tutorial_max: 14               # canal máximo del fondo en (360, 300) con el tutorial superpuesto (en juego ~26)

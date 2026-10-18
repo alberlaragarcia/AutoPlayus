@@ -212,3 +212,28 @@ games:
       yellow_px: 20                  # píxeles amarillos (muestreando 1 de cada 4x4) para dar la ruta por visible
       timer_box: [150, 405, 570, 435]  # x0, y0, x1, y1 de la barra de tiempo (aparece al poder trazar)
       segment_ms: 100                # ms por tramo del arrastre
+
+  - id: ColorMemory
+    name: Color Memory
+    agent: color_memory
+    params:
+      sample_box: [15, 480, 45, 520]  # x0, y0, x1, y1 del parche del fondo que se lee (fuera de controles)
+      uniform_points: [[30, 500], [690, 500], [360, 900], [100, 1200]]  # en "Memoriza" toda la pantalla es un color
+      uniform_tol: 6                 # diferencia máxima entre esos puntos para dar la pantalla por uniforme
+      rows: [712, 864, 1016]         # y de los deslizadores de tono, saturación y brillo
+      track_x: [60, 660]             # x donde se buscan los botones (y límites de arrastre)
+      knob_white: 235                # canal mínimo de un píxel del botón blanco
+      knob_px: [20, 80]              # ancho en px del botón en su fila
+      slope_px:                      # px por unidad de valor (calibrado en la partida humana; se corrige en vivo)
+        hue: 1.19                    # px por grado (428 px para 360°)
+        sat: 607.5                   # px por unidad de saturación (0-1)
+        val: 618.6                   # px por unidad de brillo (0-1)
+      tolerance:                     # error admitido por deslizador
+        hue: 1.0                     # grados
+        sat: 0.006
+        val: 0.006
+      max_moves: 6                   # arrastres como máximo por deslizador y pasada
+      passes: 2                      # pasadas por los tres deslizadores
+      settle_s: 0.25                 # s tras un arrastre antes de medir el color resultante
+      drag_ms: 150                   # duración de cada arrastre
+      submit: [360, 1132]            # botón "FIJAR"

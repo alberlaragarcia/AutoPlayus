@@ -10,6 +10,7 @@ from autoplayus.agents.react import React
 from autoplayus.agents.zig import Zig
 from autoplayus.agents.dice_roll import DiceRoll
 from autoplayus.agents.grid import Grid
+from autoplayus.agents.trace import Trace
 
 AGENT_TYPES: dict[str, type[BaseAgent]] = {
     "pattern_recognition": PatternRecognitionAgent,
@@ -23,4 +24,5 @@ AGENT_TYPES: dict[str, type[BaseAgent]] = {
     "zig": Zig,
     "dice_roll": DiceRoll,
     "grid": Grid,
+    "trace": Trace,
 }

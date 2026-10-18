@@ -206,3 +206,25 @@ class BlueStacksDevice(AdbDevice):
             _user32.PostMessageW(hwnd, _WM_LBUTTONUP, 0, end)
         finally:
             _user32.SetThreadDpiAwarenessContext(ctypes.c_void_p(previous))
+
+    def drag_path(self, points: list[tuple[int, int]], step_ms: int = 60) -> None:
+        """Arrastre continuo por todos los puntos: pulsar en el primero, mover pasando por cada uno (`step_ms`
+        por tramo, con puntos intermedios cada ~8 ms) y soltar en el último, sin levantar el dedo entre tramos."""
+        hwnd = self._window()
+        if hwnd is None or len(points) < 2:
+            return super().drag_path(points, step_ms)
+        previous = _user32.SetThreadDpiAwarenessContext(ctypes.c_void_p(_PER_MONITOR_AWARE_V2))
+        try:
+            start, end = self._to_client(hwnd, *points[0]), self._to_client(hwnd, *points[-1])
+            if start is None or end is None:
+                return super().drag_path(points, step_ms)
+            steps = max(2, step_ms // 8)
+            _user32.PostMessageW(hwnd, _WM_LBUTTONDOWN, _MK_LBUTTON, start)
+            for (x1, y1), (x2, y2) in zip(points, points[1:]):
+                for i in range(1, steps + 1):
+                    px, py = int(x1 + (x2 - x1) * i / steps), int(y1 + (y2 - y1) * i / steps)
+                    _user32.PostMessageW(hwnd, _WM_MOUSEMOVE, _MK_LBUTTON, self._to_client(hwnd, px, py))
+                    time.sleep(step_ms / 1000 / steps)
+            _user32.PostMessageW(hwnd, _WM_LBUTTONUP, 0, end)
+        finally:
+            _user32.SetThreadDpiAwarenessContext(ctypes.c_void_p(previous))

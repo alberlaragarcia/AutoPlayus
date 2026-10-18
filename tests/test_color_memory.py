@@ -23,16 +23,22 @@ def test_reads_the_target_and_the_sliders():
 
 
 class FakeGame:
-    """Juego sintético: el fondo es el color de tres deslizadores cuyos botones mueve swipe(). `mapping` pasa de
-    posición x del botón al valor (tono en grados, saturación y brillo 0-1)."""
+    """Juego sintético: el fondo es el color de tres deslizadores cuyos botones mueve drag_path(). `mapping` pasa
+    de posición x del botón al valor (tono en grados, saturación y brillo 0-1). Como en el juego real
+    (ColorMemory_run1), un arrastre que no se aleja `slop` px del punto inicial no mueve nada, y el botón queda
+    `landing` px desviado de donde se suelta."""
 
-    def __init__(self, mapping, knobs=(360, 452, 360)):
+    def __init__(self, mapping, knobs=(360, 452, 360), slop=12, landing=5):
         self.mapping, self.knobs, self.taps = mapping, list(knobs), []
+        self.slop, self.landing, self.drags = slop, landing, 0
 
-    def swipe(self, x1, y1, x2, y2, duration_ms=200):
-        row = load_catalog()["ColorMemory"].params["rows"].index(y1)
-        assert abs(self.knobs[row] - x1) < 2  # el arrastre empieza sobre el botón
-        self.knobs[row] = min(max(x2, 100), 620)
+    def drag_path(self, points, step_ms=60):
+        (x0, y0), (x_end, _) = points[0], points[-1]
+        row = load_catalog()["ColorMemory"].params["rows"].index(y0)
+        assert abs(self.knobs[row] - x0) < 2  # el arrastre empieza sobre el botón
+        self.drags += 1
+        if max(abs(x - x0) for x, _ in points) >= self.slop:
+            self.knobs[row] = min(max(x_end + self.landing, 100), 620)
 
     def tap(self, x, y):
         self.taps.append((x, y))
@@ -58,9 +64,9 @@ def _plain_mapping(xh, xs, xv):
     return (xh - 100) / 520 * 360, (xs - 100) / 520, (xv - 100) / 520
 
 
-def _play(mapping, target_hsv):
+def _play(mapping, target_hsv, **game_kwargs):
     params = load_catalog()["ColorMemory"].params
-    game = FakeGame(mapping)
+    game = FakeGame(mapping, **game_kwargs)
     agent = ColorMemory(game, params)
     agent.on_start()
     r, g, b = colorsys.hsv_to_rgb(target_hsv[0] / 360, *target_hsv[1:])
@@ -93,3 +99,18 @@ def test_reaches_red_at_either_end_of_the_hue_slider():
         game, (h, s, v), _ = _play(_game_mapping, (target, 0.7, 0.8))
         assert game.taps
         assert min(abs(h - target), 360 - abs(h - target)) < 1.5, (target, h)
+
+
+def test_fine_corrections_beat_the_drag_threshold_and_landing_offset():
+    """ColorMemory_run1: los arrastres de menos de ~12 px no hacían nada y el tono se quedó 10° desviado."""
+    game, (h, s, v), _ = _play(_game_mapping, (188.3, 0.243, 0.580), slop=12, landing=5)
+    assert game.taps
+    assert abs(h - 188.3) < 1.5 and abs(s - 0.243) < 0.01 and abs(v - 0.580) < 0.01
+
+
+def test_moves_further_away_if_the_drags_do_not_register():
+    """Con un umbral mayor que el alejamiento inicial (40 px), el agente detecta que el botón no se mueve y se
+    aleja más."""
+    game, (h, s, v), _ = _play(_game_mapping, (188.3, 0.243, 0.580), slop=60, landing=0)
+    assert game.taps
+    assert abs(h - 188.3) < 1.5 and abs(s - 0.243) < 0.01 and abs(v - 0.580) < 0.01

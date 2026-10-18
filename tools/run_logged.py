@@ -30,7 +30,7 @@ def main() -> None:
     events: list[tuple[float, str, str]] = []
     t0 = time.time()
 
-    shot, swipe, tap = device.screenshot, device.swipe, device.tap
+    shot, swipe, tap, drag = device.screenshot, device.swipe, device.tap, device.drag_path
 
     lock = threading.Lock()  # el agente puede capturar desde varios hilos
 
@@ -55,7 +55,11 @@ def main() -> None:
         events.append((time.time() - t0, "tap", str(a)))
         tap(*a)
 
-    device.screenshot, device.swipe, device.tap = rec_shot, rec_swipe, rec_tap
+    def rec_drag(points, step_ms=60):
+        events.append((time.time() - t0, "drag", str(points)))
+        drag(points, step_ms)
+
+    device.screenshot, device.swipe, device.tap, device.drag_path = rec_shot, rec_swipe, rec_tap, rec_drag
 
     agent = load_catalog()[game_id].build_agent(device)
     stop_file = out / "STOP"

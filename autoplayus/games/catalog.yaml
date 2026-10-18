@@ -235,5 +235,8 @@ games:
       max_moves: 6                   # arrastres como máximo por deslizador y pasada
       passes: 2                      # pasadas por los tres deslizadores
       settle_s: 0.25                 # s tras un arrastre antes de medir el color resultante
-      drag_ms: 150                   # duración de cada arrastre
+      drag_ms: 120                   # ms por tramo de cada arrastre (alejarse y volver)
+      overshoot_px: 40               # cuánto se aleja el dedo antes de ir al punto exacto (umbral de arrastre de Android ~10-15 px)
+      overshoot_max_px: 120          # alejamiento máximo si los arrastres no mueven el botón
+      stuck_min_px: 6                # solo se considera que un arrastre no movió el botón si se pedía mover al menos esto
       submit: [360, 1132]            # botón "FIJAR"

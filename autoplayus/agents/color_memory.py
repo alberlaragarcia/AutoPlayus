@@ -55,6 +55,12 @@ class ColorMemory(BaseAgent):
     corrige el error restante, actualizando la pendiente con cada movimiento, hasta quedar dentro de
     `tolerance`. Luego otra pasada para afinar y "FIJAR".
 
+    Arrastres: Android no da por arrastre un movimiento de menos de ~10-15 px, así que en ColorMemory_run1
+    todas las correcciones finas se perdieron (el tono no se movió nada; 98,34 % con 10° de error). Ahora se
+    pulsa en el botón, se aleja `overshoot_px` para superar ese umbral y se vuelve al punto exacto antes de
+    soltar, sin levantar el dedo (Device.drag_path). Dónde queda el botón respecto a dónde se soltó se mide y
+    se compensa en los siguientes arrastres; si un arrastre no lo mueve, se aleja el doble la próxima vez.
+
     Start, detección de fin y OK los hace BaseAgent.run().
     """
 
@@ -68,6 +74,9 @@ class ColorMemory(BaseAgent):
         self._moved_at = -1e9
         self._last: tuple[float, float] | None = None  # (x, valor) antes del último arrastre
         self._slope = {name: 1 / self.params["slope_px"][name] for name in SLIDERS}
+        self._offset = {name: 0.0 for name in SLIDERS}  # dónde queda el botón menos dónde se soltó (px)
+        self._requested: float | None = None  # x a la que se soltó el último arrastre
+        self._overshoot = float(self.params["overshoot_px"])
         self._done = False
 
     def step(self, frame: np.ndarray) -> None:
@@ -87,6 +96,7 @@ class ColorMemory(BaseAgent):
             x0, x1 = self.params["track_x"]
             value = unwrap_hue(value, (x - x0) / (x1 - x0) * 360)
             goal = unwrap_hue(goal, value)
+        self._learn_from_last_drag(name, x)
         if self._last is not None and abs(x - self._last[0]) > 3:
             measured = (value - self._last[1]) / (x - self._last[0])  # cambio de valor por px
             if measured * self._slope[name] > 0:  # mismo signo: es una medida válida de la pendiente
@@ -98,9 +108,35 @@ class ColorMemory(BaseAgent):
             return
         lo, hi = self.params["track_x"]
         new_x = float(np.clip(x + err / self._slope[name], lo + 8, hi - 8))
-        self.device.swipe(int(x), y, int(round(new_x)), y, self.params["drag_ms"])
+        release = float(np.clip(new_x - self._offset[name], lo + 8, hi - 8))
+        self._drag(x, y, release)
         self._last, self._moved_at, self._moves = (x, value), self.frame_time, self._moves + 1
         log.info("%s: %.3f -> objetivo %.3f (error %.3f): botón %.0f -> %.0f", name, value, goal, err, x, new_x)
+
+    def _drag(self, x: float, y: int, release: float) -> None:
+        """Pulsar en el botón, alejarse `self._overshoot` px (para que cuente como arrastre) y soltar en
+        `release`. El alejamiento va hacia el lado de `release`, salvo que no quepa en la barra."""
+        lo, hi = self.params["track_x"]
+        side = 1.0 if release >= x else -1.0
+        away = x + side * self._overshoot
+        if not lo + 8 <= away <= hi - 8:
+            away = x - side * self._overshoot
+        points = [(int(round(x)), y), (int(round(away)), y), (int(round(release)), y)]
+        self.device.drag_path(points, self.params["drag_ms"])
+        self._requested = release
+
+    def _learn_from_last_drag(self, name: str, x: float) -> None:
+        """Comparar dónde quedó el botón con dónde se soltó: compensar la diferencia en los siguientes
+        arrastres, o alejarse más si ni se movió."""
+        if self._requested is None or self._last is None:
+            return
+        requested, before = self._requested, self._last[0]
+        self._requested = None
+        if abs(x - before) < 1.5 and abs(requested - before) >= self.params["stuck_min_px"]:
+            self._overshoot = min(self._overshoot * 2, self.params["overshoot_max_px"])
+            log.warning("%s: el arrastre no movió el botón; alejamiento %.0f px", name, self._overshoot)
+            return
+        self._offset[name] = 0.5 * self._offset[name] + 0.5 * (x - requested)
 
     def _next_slider(self) -> None:
         self._slider, self._moves, self._last = self._slider + 1, 0, None

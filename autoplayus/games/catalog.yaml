@@ -240,3 +240,54 @@ games:
       overshoot_max_px: 120          # alejamiento máximo si los arrastres no mueven el botón
       stuck_min_px: 6                # solo se considera que un arrastre no movió el botón si se pedía mover al menos esto
       submit: [360, 1132]            # botón "FIJAR"
+
+  - id: DangerWall
+    name: Danger Wall
+    agent: danger_wall
+    params:
+      arena: [31, 228, 690, 1276]    # x0, y0, x1, y1 de la zona de juego (entre las paredes y las líneas rojas de techo y suelo)
+      white_min: 235                 # canal mínimo (B,G,R) de un píxel de la caja
+      open_px: 30                    # lado de la apertura que borra estela y marcador (la caja mide ~71 px)
+      box_area_px: [2500, 12000]     # área tras la apertura para dar la caja por vista (~4200-6200; más si pasa por el marcador)
+      spike_col: [35, 685]           # x de la columna, pegada a cada pared, donde se leen las bases de los pinchos
+      spike_len: [62, 76]            # alto de la base de un pincho completo (~69-71); fuera de eso está apareciendo o escondiéndose
+      spike_min_len: 2               # tramos rojos más cortos se ignoran (ruido)
+      wall_x: [31, 689]              # x de cada pared
+      spike_depth: 49                # px que entra la punta del pincho desde la pared
+      box_half: 35.5                 # mitad del lado de la caja (cuadrado de ~71 px que gira; ver rot_*)
+      rot_deg_per_px: 0.305          # grados que gira la caja por px que avanza (178° de pared a pared; medido en vivo)
+      rot_x0: 65.6                   # x donde la caja está recta (también lo está al llegar a la derecha)
+      hit_margin: 2                  # px de holgura que se restan frente a los pinchos (en vivo, el rebote más justo pasó con <1 px)
+      floor_margin: 4                # px que se dejan con el techo y el suelo
+      contact_x: [66.5, 653.5]       # x del centro de la caja al rebotar: pared -/+ box_half. Con [72, 648] (medido a 20 fps, se quedaba corto) se daba por libre un hueco que chocaba por 2 px
+      vx: [250, 12.3]                # px/s horizontales = a + b * puntos (ajuste de la partida humana; en vivo igual)
+      gravity: [860, 39.4]           # px/s² = a + b * puntos (42 tramos de la primera partida en vivo)
+      jump: [-468, -12.3]            # vy tras un toque (px/s) = a + b * puntos (ídem, con el retraso de 0,07 s)
+      max_score_fit: 25              # desde 25 puntos el juego ya no acelera (vx ~558, g ~1830, salto ~-765 en vivo)
+      calib_segments: 6              # tramos entre toques recientes con que se corrigen g y el salto (mediana)
+      calib_clip: [0.85, 1.15]       # corrección máxima de g y del salto respecto al ajuste
+      calib_min_pts: 8               # posiciones mínimas en un tramo para calibrar con él
+      calib_min_span_s: 0.25         # duración mínima del tramo
+      calib_margin_s: 0.02           # s que se dejan antes del toque siguiente (por si surtió efecto antes)
+      tap_latency_s: 0.07            # s entre enviar un toque y que la caja salte (estimado; medir en vivo)
+      fit_after_tap_s: 0.03          # tras surtir efecto un toque, s que se ignoran las posiciones al estimar vy
+      vy_window_s: 0.25              # s de posiciones con las que se estima vy (en el simulador, mejor que 0,15 con ruido de ~2 px)
+      vy_min_pts: 4                  # posiciones mínimas para estimar vy; con menos se usa el modelo desde el último toque
+      dir_window_s: 0.05             # s sobre los que se mide hacia dónde va la caja
+      dir_min_dx: 6                  # px mínimos en esa ventana para fiarse de la dirección
+      vx_min_span_s: 0.15            # s de tramo mínimos para medir vx (antes se usa el ajuste)
+      empty_after_s: 0.5             # s tras un rebote antes de aceptar que una pared no tiene pinchos
+      stable_frames: 2               # lecturas iguales seguidas para dar los pinchos de una pared por buenos
+      regen_s: 0.2                   # s tras un rebote antes de aceptar los pinchos nuevos de esa pared
+      plan_dt: 0.0166667             # paso del planificador (s): un fotograma del juego
+      max_horizon_s: 2.6             # horizonte máximo del plan
+      after_contact_s: 0.3           # s que se planifica tras el último rebote del horizonte
+      near_wall_px: 130              # solo se comprueban pinchos con el centro de la caja a menos de esto de su pared
+      map_px: 2                      # resolución (px) del mapa de holgura
+      clear_cap: 60                  # holgura a partir de la cual dos planes se consideran igual de buenos
+      dead_clear: -30                # estados con peor holgura se descartan (si hay alguno mejor)
+      tap_every: 3                   # tras el primer paso, el plan solo puede tocar cada tantos pasos (rapidez)
+      tap_bins: [4, 20]              # px y px/s con los que se funden estados casi iguales
+      max_states: 1500               # estados como máximo por paso del plan
+      tap_gain_px: 0                 # mejora de holgura que debe dar tocar ahora frente a esperar
+      tap: [360, 1100]               # punto donde se toca (cualquiera de la zona de juego)

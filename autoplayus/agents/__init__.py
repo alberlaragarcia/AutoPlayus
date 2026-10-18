@@ -12,6 +12,7 @@ from autoplayus.agents.dice_roll import DiceRoll
 from autoplayus.agents.grid import Grid
 from autoplayus.agents.trace import Trace
 from autoplayus.agents.color_memory import ColorMemory
+from autoplayus.agents.danger_wall import DangerWall
 
 AGENT_TYPES: dict[str, type[BaseAgent]] = {
     "pattern_recognition": PatternRecognitionAgent,
@@ -27,4 +28,5 @@ AGENT_TYPES: dict[str, type[BaseAgent]] = {
     "grid": Grid,
     "trace": Trace,
     "color_memory": ColorMemory,
+    "danger_wall": DangerWall,
 }

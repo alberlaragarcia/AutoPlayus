@@ -315,3 +315,23 @@ games:
       cooldown_s: 0.3                # s sin volver a tocar tras un toque (que no se repita el mismo cruce)
       burst: 5                       # toques seguidos del primer intento (a la vez cuentan los 5 a la velocidad inicial)
       tap: [360, 1000]               # punto donde se toca (bajo la barra)
+
+  - id: SwipeFast
+    name: Swipe Fast
+    agent: swipe_fast
+    params:
+      boxes: [[205, 642], [515, 642], [205, 952], [515, 952]]  # centro de cada caja (~290 px de lado), por filas, con la etiqueta "Modo práctica"
+      arrow_half: 70                 # semilado de la zona donde se busca la flecha (mide ~80 px)
+      white_min: 220                 # canal mínimo (B,G,R) de un píxel de la flecha
+      arrow_min_px: 300              # píxeles blancos mínimos para dar la flecha por vista
+      bar_dy: 140                    # fila de la barra de tiempo respecto al centro de la caja
+      bar_half: 142                  # semiancho de la barra
+      bar_min_px: 3                  # largo mínimo de la barra para que la caja cuente como de juego
+      layout_search_px: 40           # px arriba y abajo donde se buscan las barras para medir el desplazamiento de la pantalla
+      layout_bar_px: 100             # largo mínimo de barra (la más larga de la fila) para fiarse de esa medida (al empezar están llenas, ~270)
+      stable_frames: 2               # capturas seguidas con la misma flecha antes de deslizar (en la partida humana ninguna lectura duró menos de 3)
+      refill_px: 15                  # subida de la barra que confirma que el gesto contó (sube ~100-150 px en ~0,15 s)
+      pending_s: 0.25                # s sin ver el gesto confirmado antes de repetirlo (en vivo ~9 % no contaron; con 0,35 y gestos de 40 ms se perdió por tiempo a los 288)
+      refill_anim_s: 0.2             # s que sigue subiendo la barra tras un acierto (no confirma el gesto siguiente)
+      swipe_px: 120                  # largo del gesto (dentro de la caja)
+      swipe_ms: 20                   # duración del gesto (con 40: ~19 gestos/s en serie, y el agente no captura mientras desliza)

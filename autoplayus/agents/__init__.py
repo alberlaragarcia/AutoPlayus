@@ -15,6 +15,7 @@ from autoplayus.agents.color_memory import ColorMemory
 from autoplayus.agents.danger_wall import DangerWall
 from autoplayus.agents.center_hit import CenterHit
 from autoplayus.agents.swipe_fast import SwipeFast
+from autoplayus.agents.box_guesser import BoxGuesser
 
 AGENT_TYPES: dict[str, type[BaseAgent]] = {
     "pattern_recognition": PatternRecognitionAgent,
@@ -33,4 +34,5 @@ AGENT_TYPES: dict[str, type[BaseAgent]] = {
     "danger_wall": DangerWall,
     "center_hit": CenterHit,
     "swipe_fast": SwipeFast,
+    "box_guesser": BoxGuesser,
 }

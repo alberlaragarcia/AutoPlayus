@@ -335,3 +335,24 @@ games:
       refill_anim_s: 0.2             # s que sigue subiendo la barra tras un acierto (no confirma el gesto siguiente)
       swipe_px: 120                  # largo del gesto (dentro de la caja)
       swipe_ms: 20                   # duración del gesto (con 40: ~19 gestos/s en serie, y el agente no captura mientras desliza)
+
+  - id: BoxGuesser
+    name: Box Guesser
+    agent: box_guesser
+    params:
+      play_rows: [300, 1150]         # filas por donde cruza el tablero (bajo la cabecera y "NIVEL n")
+      board_min_px: 3000             # píxeles rojos mínimos para dar el tablero por visto
+      canvas_x: [31, 689]            # x de los bordes de la zona donde el juego dibuja el tablero (lo corta ahí)
+      edge_px: 2                     # una mancha a esta distancia de esos bordes es un cubo cortado
+      edge_piece_px: 20              # área mínima de un trozo de cara cortado por el borde para contarlo
+      face_min_px: 80                # área mínima de una mancha de cara superior
+      piece_frac: 0.25               # manchas menores que esta fracción de la mediana son trozos tapados, no cajas
+      keep_width: 0.9                # se cuentan los fotogramas con el tablero a >= este ancho relativo al máximo
+      submit_size: [[400, 90], [520, 130]]  # ancho y alto mínimos y máximos del botón "Enviar" (466x108)
+      plus_offset: [181, -120]       # "+" respecto al centro de "Enviar"
+      number_offset: [2, -121]       # número respecto al centro de "Enviar"
+      number_half: [40, 30]          # semiancho y semialto de la zona del número
+      change_px: 50                  # píxeles que deben cambiar en esa zona para dar un toque en "+" por bueno
+      change_s: 0.5                  # s esperando a ver cambiar el número antes de repetir el toque
+      tap_retries: 1                 # repeticiones de un toque en "+" que no cambió el número
+      settle_s: 0.15                 # s tras el último "+" antes de pulsar "Enviar"

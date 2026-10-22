@@ -295,3 +295,23 @@ games:
       max_states: 1500               # estados como máximo por paso del plan
       tap_gain_px: 0                 # mejora de holgura que debe dar tocar ahora frente a esperar
       tap: [360, 1100]               # punto donde se toca (cualquiera de la zona de juego)
+
+  - id: CenterHit
+    name: Center Hit
+    agent: center_hit
+    params:
+      pointer_rows: [812, 822]       # franja bajo la barra (y 700-810) donde solo asoma el puntero
+      white_min: 200                 # canal mínimo (B,G,R) de un píxel del puntero
+      pointer_px: [3, 15]            # ancho en px del puntero en esa franja (~8)
+      center_x: 359.5                # x del centro de la barra (línea blanca fija)
+      pct_per_px: 0.35               # nota perdida por px de distancia al centro (la media que muestra el juego lo confirma)
+      fit_min_pts: 8                 # posiciones mínimas de la pasada actual para predecir el cruce
+      fit_min_span_s: 0.15           # s mínimos de la pasada actual
+      min_speed: 100                 # px/s; por debajo el puntero se da por parado
+      tap_latency_s: 0.033           # s entre enviar un toque y que cuente: en la 1.ª partida, con 0,07 contó 37 ms antes de tiempo (puntero parado a +20,5 px)
+      stop_check_s: 0.15             # s tras la ráfaga antes de leer dónde se paró el puntero
+      schedule_ahead_s: 0.03         # se espera activamente al toque si falta menos que esto
+      late_ok_s: 0.005               # retraso máximo admitido sobre el momento previsto
+      cooldown_s: 0.3                # s sin volver a tocar tras un toque (que no se repita el mismo cruce)
+      burst: 5                       # toques seguidos del primer intento (a la vez cuentan los 5 a la velocidad inicial)
+      tap: [360, 1000]               # punto donde se toca (bajo la barra)

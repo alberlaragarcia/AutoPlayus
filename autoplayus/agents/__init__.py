@@ -13,6 +13,7 @@ from autoplayus.agents.grid import Grid
 from autoplayus.agents.trace import Trace
 from autoplayus.agents.color_memory import ColorMemory
 from autoplayus.agents.danger_wall import DangerWall
+from autoplayus.agents.center_hit import CenterHit
 
 AGENT_TYPES: dict[str, type[BaseAgent]] = {
     "pattern_recognition": PatternRecognitionAgent,
@@ -29,4 +30,5 @@ AGENT_TYPES: dict[str, type[BaseAgent]] = {
     "trace": Trace,
     "color_memory": ColorMemory,
     "danger_wall": DangerWall,
+    "center_hit": CenterHit,
 }

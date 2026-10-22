@@ -58,6 +58,48 @@ def read_landing(frame: np.ndarray, params: dict[str, Any]) -> Dice | None:
     return tuple(counts)  # type: ignore[return-value]
 
 
+def find_layout(frame: np.ndarray, params: dict[str, Any]) -> tuple[float, float] | None:
+    """(desplazamiento vertical de los dados, del teclado) respecto a `dice` y `keys`, o None si no se ven.
+
+    La cabecera de la pantalla cambia según el modo (con la etiqueta "Modo práctica" o sin ella) y todo el
+    contenido se mueve en vertical: sin etiqueta los dados suben 22 px y el teclado 12. Los dados quietos son 4
+    cuadrados blancos de ~105 px en 2x2; las teclas, rectángulos grises grandes bajo ellos.
+    """
+    y0, y1 = params["layout_rows"]
+    white = (frame[y0:y1].min(axis=2) > params["white_min"]).astype(np.uint8)
+    white = cv2.morphologyEx(white, cv2.MORPH_CLOSE, np.ones((15, 15), np.uint8))  # tapar los puntos
+    n, _, stats, cents = cv2.connectedComponentsWithStats(white)
+    lo, hi = params["die_px"]
+    dice = [cents[i] for i in range(1, n) if lo <= stats[i, cv2.CC_STAT_WIDTH] <= hi and lo <= stats[i, cv2.CC_STAT_HEIGHT] <= hi]
+    if len(dice) != 4:
+        return None
+    found = sorted((float(y) + y0, float(x)) for x, y in dice)
+    expected = sorted((float(y), float(x)) for x, y in params["dice"])
+    dys = [f[0] - e[0] for f, e in zip(found, expected)]
+    if max(dys) - min(dys) > 6 or max(abs(f[1] - e[1]) for f, e in zip(sorted(found, key=lambda v: (round(v[0] / 50), v[1])),
+                                                                          sorted(expected, key=lambda v: (round(v[0] / 50), v[1])))) > 15:
+        return None  # no es la cuadrícula 2x2 de siempre (dados girando)
+    g = frame[params["keypad_from_y"]:].astype(np.int16)
+    grey = ((np.abs(g[..., 0] - g[..., 2]) < 45) & (g.mean(axis=2) > 45) & (g.mean(axis=2) < 100)).astype(np.uint8)
+    n, _, stats, cents = cv2.connectedComponentsWithStats(grey)
+    rows = [cents[i][1] + params["keypad_from_y"] for i in range(1, n) if stats[i, cv2.CC_STAT_AREA] >= params["key_min_px"]]
+    if not rows:
+        return None
+    return float(np.mean(dys)), float(min(rows) - params["keys"]["1"][1])
+
+
+def shift_layout(params: dict[str, Any], dice_dy: float, keys_dy: float) -> dict[str, Any]:
+    """Copia de `params` con dados, zona del número tecleado y teclas desplazados en vertical."""
+    p = dict(params)
+    d, k = round(dice_dy), round(keys_dy)
+    p["dice"] = [[x, y + d] for x, y in params["dice"]]
+    y0, y1, x0, x1 = params["typed_box"]
+    p["typed_box"] = [y0 + d, y1 + d, x0, x1]
+    p["keys"] = {c: [x, y + k] for c, (x, y) in params["keys"].items()}
+    p["backspace"] = [params["backspace"][0], params["backspace"][1] + k]
+    return p
+
+
 def typed_visible(frame: np.ndarray, params: dict[str, Any]) -> bool:
     """Hay algún número tecleado en pantalla (blanco mientras no es la suma, verde si lo es)."""
     y0, y1, x0, x1 = params["typed_box"]
@@ -95,12 +137,20 @@ class DiceRoll(BaseAgent):
     se desactiva el adelanto el resto de la partida; si lo leído en el aterrizaje era otra cosa, se borra y se
     teclea lo correcto.
 
+    Las coordenadas de `params` son las de la pantalla con la etiqueta "Modo práctica"; sin ella todo sube.
+    Hasta encontrar los dados quietos (find_layout) no se hace nada; después se usan las coordenadas
+    desplazadas (shift_layout).
+
     Start, toque del tutorial, detección de fin y OK los hace BaseAgent.run().
     """
 
     step_delay = 0.0  # juego de reflejos: no esperar entre capturas
 
     def on_start(self) -> None:
+        if not hasattr(self, "_base_params"):
+            self._base_params = self.params
+        self.params = self._base_params
+        self._layout_ok = False
         self._seen: Dice | None = None  # última lectura coherente
         self._seen_since = 0.0
         self._guess: Dice | None = None  # última lectura de aterrizaje
@@ -114,6 +164,13 @@ class DiceRoll(BaseAgent):
         self._roll_start: float | None = None  # cuándo empezaron a rodar los dados de esta ronda
 
     def step(self, frame: np.ndarray) -> None:
+        if not self._layout_ok:
+            layout = find_layout(frame, self._base_params)
+            if layout is None:
+                return
+            self.params = shift_layout(self._base_params, *layout)
+            self._layout_ok = True
+            log.info("Pantalla desplazada: dados %+.0f px, teclado %+.0f px", *layout)
         dice = read_dice(frame, self.params)
         now = self.frame_time
         if self._answered is not None:

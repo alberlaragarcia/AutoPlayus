@@ -153,7 +153,11 @@ games:
     name: Dice Roll
     agent: dice_roll
     params:
-      dice: [[276, 431], [444, 431], [276, 599], [444, 599]]  # centro de cada dado, por filas (caras de ~105 px)
+      dice: [[276, 431], [444, 431], [276, 599], [444, 599]]  # centro de cada dado, por filas (caras de ~105 px), con la etiqueta "Modo práctica"; sin ella todo sube (ver find_layout)
+      layout_rows: [250, 760]        # filas donde se buscan los dados para medir el desplazamiento de la pantalla
+      die_px: [95, 115]              # lado en px de un dado quieto al buscarlo
+      keypad_from_y: 760             # las teclas están por debajo de esta fila
+      key_min_px: 8000               # área mínima de una tecla (gris) al buscarla
       die_half: 48                   # semilado de la zona que se analiza dentro de cada cara (queda dentro aunque la cara no esté perfecta)
       white_min: 215                 # canal mínimo (B,G,R) de un píxel blanco de la cara (~240)
       pip_max: 90                    # canal máximo de un píxel de punto (negro)

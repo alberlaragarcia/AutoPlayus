@@ -356,3 +356,20 @@ games:
       change_s: 0.5                  # s esperando a ver cambiar el número antes de repetir el toque
       tap_retries: 1                 # repeticiones de un toque en "+" que no cambió el número
       settle_s: 0.15                 # s tras el último "+" antes de pulsar "Enviar"
+
+  - id: OnTime
+    name: On Time
+    agent: on_time
+    params:
+      target_s: 7.0                  # segundos a los que hay que parar el cronómetro (el arco da una vuelta en ese tiempo)
+      see_to_effect_s: -0.0105       # s entre lo que se ve en una captura y que cuente un toque enviado entonces (aquí el juego toma la hora del toque al recibirlo). Media de 2 partidas: con 0,033 paró en 6,963 (-> -0,004) y con -0,004 en 7,013 (-> -0,017); la diferencia es la variación del retraso del toque
+      ring_rows: [350, 1050]         # filas donde está el anillo (centro ~(359, 691), radio ~240 con la etiqueta "Modo práctica")
+      ring_min_px: 3000              # píxeles de anillo (muestreando 1 de cada 2) para ajustar el círculo
+      green_min_px: 50               # píxeles de arco verde mínimos para calibrar el anillo
+      ring_radius: [200, 280]        # radio plausible del anillo
+      angle_range: [5, 340]          # grados de arco con los que se estima el arranque (fuera, el borde del arco engaña)
+      min_readings: 20               # capturas mínimas para fiarse del arranque visto (si no, se para a ciegas)
+      outlier_deg: 2.0               # lecturas más lejos de la recta que esto se descartan (el ruido normal es ~0,3°)
+      schedule_ahead_s: 0.03         # se espera activamente al toque si falta menos que esto
+      after_start_s: 1.0             # s tras pulsar Start antes del toque de arranque (aparece el aviso "Toca para empezar")
+      tap: [360, 1000]               # punto donde se toca

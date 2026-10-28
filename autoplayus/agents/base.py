@@ -91,7 +91,7 @@ class BaseAgent(ABC):
     ok_pos: tuple[int, int] | None = None  # centro del botón OK de la pantalla final, tal como lo vio is_solved
     frame_time = 0.0  # instante en que empezó la captura del fotograma que recibe step(); un gesto anterior a él no se ve aún
 
-    def run(self, max_seconds: float = 180.0, step_delay: float | None = None) -> bool:
+    def run(self, max_seconds: float = 360.0, step_delay: float | None = None) -> bool:
         """Devuelve True si la partida terminó (pantalla final), False si se paró o se agotó el tiempo.
 
         Flujo común: Start -> toque inicial -> bucle step() -> OK en la pantalla final.
